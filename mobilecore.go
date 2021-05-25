@@ -12,3 +12,19 @@ func errorResult(err error) *Result {
 
 	return &Result{nil, err.Error()}
 }
+
+// Stubs
+func DiscloseAllWithTimeQrEncoded(holderSkJson, credJson []byte) *Result {
+	return &Result{[]byte{},  ""}
+}
+
+type VerifyResult struct {
+	AttributesJson  []byte
+	UnixTimeSeconds int64
+	Error           string
+}
+
+func VerifyQREncoded(proofQrEncodedAsn1 []byte) *VerifyResult {
+	// not implemented
+	return &VerifyResult{[]byte{}, 0, ""}
+}
