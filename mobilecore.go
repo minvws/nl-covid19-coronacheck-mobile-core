@@ -15,7 +15,7 @@ func errorResult(err error) *Result {
 
 // Stubs
 func DiscloseAllWithTimeQrEncoded(holderSkJson, credJson []byte) *Result {
-	return &Result{[]byte{},  ""}
+	return &Result{[]byte{}, ""}
 }
 
 type VerifyResult struct {

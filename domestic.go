@@ -5,6 +5,7 @@ import (
 	"github.com/go-errors/errors"
 	"github.com/minvws/nl-covid19-coronacheck-idemix/common"
 	"github.com/minvws/nl-covid19-coronacheck-idemix/holder"
+	"github.com/minvws/nl-covid19-coronacheck-idemix/verifier"
 	"github.com/privacybydesign/gabi"
 	"github.com/privacybydesign/gabi/big"
 	"strconv"
@@ -115,7 +116,7 @@ func CreateCredentials(ccmsJson []byte) *Result {
 	}
 
 	results := make([]*createCredentialResultValue, 0, len(creds))
-	for _, cred := range(creds) {
+	for _, cred := range creds {
 		attributes, err := readCredentialWithVersion(cred)
 		if err != nil {
 			return errorResult(err)
@@ -138,10 +139,9 @@ func CreateCredentials(ccmsJson []byte) *Result {
 }
 
 func ReadDomesticCredential(credJson []byte) *Result {
-	cred := new(gabi.Credential)
-	err := json.Unmarshal(credJson, cred)
+	cred, err := unmarshalCredential(credJson)
 	if err != nil {
-		return errorResult(errors.WrapPrefix(err, "Could not unmarshal credential", 0))
+		return errorResult(err)
 	}
 
 	attributes, err := readCredentialWithVersion(cred)
@@ -157,6 +157,46 @@ func ReadDomesticCredential(credJson []byte) *Result {
 	return &Result{attributesJson, ""}
 }
 
+func Disclose(holderSkJson, credJson []byte) *Result {
+	holderSk, err := unmarshalHolderSk(holderSkJson)
+	if err != nil {
+		return errorResult(err)
+	}
+
+	cred, err := unmarshalCredential(credJson)
+	if err != nil {
+		return errorResult(err)
+	}
+
+	h := holder.New(holderSk, loadedIssuerPks)
+	proofBase45, err := h.DiscloseAllWithTimeQREncoded(cred)
+	if err != nil {
+		return errorResult(errors.WrapPrefix(err, "Could not disclosure credential", 0))
+	}
+
+	return &Result{proofBase45, ""}
+}
+
+// TODO: Add checking of verified time 'challenge'
+func Verify(proofBase45 []byte) *Result {
+	v := verifier.New(loadedIssuerPks)
+
+	verifiedCred, err := v.VerifyQREncoded(proofBase45)
+	if err != nil {
+		return errorResult(errors.WrapPrefix(err, "Could not verify credential", 0))
+	}
+
+	attributes := verifiedCred.Attributes
+	attributes["credentialVersion"] = strconv.Itoa(verifiedCred.CredentialVersion)
+
+	attributesJson, err := json.Marshal(attributes)
+	if err != nil {
+		return errorResult(errors.WrapPrefix(err, "Could not marshal verified attributes", 0))
+	}
+
+	return &Result{attributesJson, ""}
+}
+
 func unmarshalHolderSk(holderSkJson []byte) (*big.Int, error) {
 	holderSk := new(big.Int)
 	err := json.Unmarshal(holderSkJson, holderSk)
@@ -165,6 +205,16 @@ func unmarshalHolderSk(holderSkJson []byte) (*big.Int, error) {
 	}
 
 	return holderSk, nil
+}
+
+func unmarshalCredential(credJson []byte) (*gabi.Credential, error) {
+	cred := new(gabi.Credential)
+	err := json.Unmarshal(credJson, cred)
+	if err != nil {
+		return nil, errors.WrapPrefix(err, "Could not unmarshal credential", 0)
+	}
+
+	return cred, nil
 }
 
 func readCredentialWithVersion(cred *gabi.Credential) (map[string]string, error) {

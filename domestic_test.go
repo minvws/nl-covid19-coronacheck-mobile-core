@@ -14,9 +14,10 @@ import (
 )
 
 func TestFlow(t *testing.T) {
-	credentialAmount := 28
+	credentialAmount := 3
 	credentialAttributes := buildCredentialsAttributes(credentialAmount)
 
+	// Load public keys
 	if HasLoadedDomesticIssuerPks {
 		t.Fatal("HasLoadedDomesticIssuerPks flag is incorrectly true")
 	}
@@ -30,11 +31,13 @@ func TestFlow(t *testing.T) {
 		t.Fatal("HasLoadedDomesticIssuerPks flag is incorrectly false")
 	}
 
+	// Generate holder secret key
 	r2 := GenerateHolderSk()
 	if r2.Error != "" {
 		t.Fatal("Could not generate holder secret key:", r2.Error)
 	}
 
+	// Create a signer and issuer for the tests
 	ls, err := localsigner.NewFromString(testIssuerPkId, testIssuerPkXml, testIssuerSkXml)
 	if err != nil {
 		t.Fatal("Could not create local signer:", err)
@@ -46,6 +49,7 @@ func TestFlow(t *testing.T) {
 		t.Fatal("Could not prepare issue:", err)
 	}
 
+	// Issuance dance
 	pimJson, err := json.Marshal(pim)
 	if err != nil {
 		t.Fatal("Could not JSON marshal prepare issue message:", err)
@@ -63,7 +67,7 @@ func TestFlow(t *testing.T) {
 	}
 
 	im := &issuer.IssueMessage{
-		PrepareIssuanceMessage: pim,
+		PrepareIssueMessage:    pim,
 		IssueCommitmentMessage: icm,
 		CredentialsAttributes:  credentialAttributes,
 	}
@@ -83,6 +87,7 @@ func TestFlow(t *testing.T) {
 		t.Fatal("Could not create credential:", r4.Error)
 	}
 
+	// Check back attributes returns on creation
 	var r4Values []*createCredentialResultValue
 	err = json.Unmarshal(r4.Value, &r4Values)
 	if err != nil {
@@ -106,6 +111,7 @@ func TestFlow(t *testing.T) {
 			t.Fatal("Could not marshal credential:", err)
 		}
 
+		// Read
 		r5 := ReadDomesticCredential(credJson)
 		if r5.Error != "" {
 			t.Fatal("Could not read credential:", r5.Error)
@@ -114,6 +120,18 @@ func TestFlow(t *testing.T) {
 		err = checkAttributesJson(credentialAttributes[i], r5.Value)
 		if err != nil {
 			t.Fatal(err)
+		}
+
+		// Disclose
+		r6 := Disclose(r2.Value, credJson)
+		if r6.Error != "" {
+			t.Fatal("Could not disclose credential:", r5.Error)
+		}
+
+		// Verify
+		r7 := Verify(r6.Value)
+		if r7.Error != "" {
+			t.Fatal("Could not verify credential", r7.Error)
 		}
 	}
 }
@@ -170,7 +188,6 @@ func areAttributesEqualWithCredentialVersion(attributes map[string]string, decod
 
 	return nil
 }
-
 
 var testIssuerPkId = "testPk"
 var testIssuerPkXml = `
