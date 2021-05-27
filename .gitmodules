@@ -1,0 +1,6 @@
+[submodule "nl-covid19-coronacheck-hcert-private"]
+	path = nl-covid19-coronacheck-hcert-private
+	url = git@github.com:minvws/nl-covid19-coronacheck-hcert-private.git
+[submodule "nl-covid19-coronacheck-idemix-private"]
+	path = nl-covid19-coronacheck-idemix-private
+	url = git@github.com:minvws/nl-covid19-coronacheck-idemix-private.git
