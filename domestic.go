@@ -178,23 +178,18 @@ func Disclose(holderSkJson, credJson []byte) *Result {
 }
 
 // TODO: Add checking of verified time 'challenge'
-func Verify(proofBase45 []byte) *Result {
+func verifyDomestic(proofBase45 []byte) (attributes map[string]string, err error) {
 	v := verifier.New(loadedIssuerPks)
 
 	verifiedCred, err := v.VerifyQREncoded(proofBase45)
 	if err != nil {
-		return errorResult(errors.WrapPrefix(err, "Could not verify credential", 0))
+		return nil, err
 	}
 
-	attributes := verifiedCred.Attributes
+	attributes = verifiedCred.Attributes
 	attributes["credentialVersion"] = strconv.Itoa(verifiedCred.CredentialVersion)
 
-	attributesJson, err := json.Marshal(attributes)
-	if err != nil {
-		return errorResult(errors.WrapPrefix(err, "Could not marshal verified attributes", 0))
-	}
-
-	return &Result{attributesJson, ""}
+	return attributes, nil
 }
 
 func unmarshalHolderSk(holderSkJson []byte) (*big.Int, error) {
