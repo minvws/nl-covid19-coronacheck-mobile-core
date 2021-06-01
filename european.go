@@ -26,10 +26,11 @@ type VerificationResult struct {
 }
 
 type HCert struct {
-	CredentialVersion int  `json:"credentialVersion"`
-	ExpirationTime    int  `json:"expirationTime"`
-	IssuedAt          int  `json:"issuedAt"`
-	DCC               *DCC `json:"dcc"`
+	CredentialVersion int    `json:"credentialVersion"`
+	Issuer            string `json:"issuer"`
+	IssuedAt          int    `json:"issuedAt"`
+	ExpirationTime    int    `json:"expirationTime"`
+	DCC               *DCC   `json:"dcc"`
 }
 
 type DCC struct {
@@ -54,6 +55,12 @@ func verifyEuropean(proofQREncoded []byte) (attributes map[string]string, err er
 		return nil, errors.WrapPrefix(err, "Could not JSON unmarshal hcert", 0)
 	}
 
+	// Determine issuer
+	isNLDCC := "0"
+	if hcert.Issuer == "NL" {
+		isNLDCC = "1"
+	}
+
 	// Normalize date of birth
 	dobParts := strings.Split(hcert.DCC.DateOfBirth, "-")
 	for i := len(dobParts); i < 3; i++ {
@@ -74,10 +81,13 @@ func verifyEuropean(proofQREncoded []byte) (attributes map[string]string, err er
 	// Turn into attributes
 	return map[string]string{
 		"credentialVersion": "1",
-		"isSpecimen":        "0",
-		"birthMonth":        dobParts[1],
-		"birthDay":          dobParts[2],
-		"firstNameInitial":  normalizedGivenName[0:1],
-		"lastNameInitial":   normalizedFamilyName[0:1],
+		"isNLDCC":           isNLDCC,
+
+		// Old-style credential values
+		"isSpecimen":       "0",
+		"birthMonth":       dobParts[1],
+		"birthDay":         dobParts[2],
+		"firstNameInitial": normalizedGivenName[0:1],
+		"lastNameInitial":  normalizedFamilyName[0:1],
 	}, nil
 }
