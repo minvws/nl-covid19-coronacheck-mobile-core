@@ -68,3 +68,14 @@ func normalizeName(input string) (string, error) {
 
 	return normalized, err
 }
+
+// Temporary mocks for compatibility reasons while the app is being rewritten
+type VerifyResult struct {
+	AttributesJson  []byte
+	UnixTimeSeconds int64
+	Error           string
+}
+
+func VerifyQREncoded(proofQrEncodedAsn1 []byte) *VerifyResult {
+	return &VerifyResult{[]byte{}, 0, ""}
+}
