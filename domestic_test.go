@@ -1,9 +1,7 @@
 package mobilecore
 
 import (
-	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"github.com/go-errors/errors"
 	"github.com/minvws/nl-covid19-coronacheck-idemix/issuer"
 	"github.com/minvws/nl-covid19-coronacheck-idemix/issuer/localsigner"
@@ -235,7 +233,3 @@ var testIssuerSkXml = `
    </Elements>
 </IssuerPrivateKey>
 `
-
-var annotatedPksJson = []byte(
-	fmt.Sprintf(`[{"id": "%s", "public_key": "%s"}]`, testIssuerPkId, base64.StdEncoding.EncodeToString([]byte(testIssuerPkXml))),
-)

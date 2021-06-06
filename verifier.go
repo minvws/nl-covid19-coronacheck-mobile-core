@@ -7,6 +7,7 @@ import (
 	idemixverifier "github.com/minvws/nl-covid19-coronacheck-idemix/verifier"
 	"os"
 	"path"
+	"time"
 )
 
 const (
@@ -58,7 +59,7 @@ func Verify(proofQREncoded []byte) *Result {
 	var err error
 
 	if hcertcommon.HasEUPrefix(proofQREncoded) {
-		attributes, err = verifyEuropean(proofQREncoded)
+		attributes, err = verifyEuropean(proofQREncoded, time.Now())
 		if err != nil {
 			return WrappedErrorResult(err, "Could not verify European QR code")
 		}
