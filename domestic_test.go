@@ -17,22 +17,13 @@ func TestFlow(t *testing.T) {
 	credentialAmount := 3
 	credentialAttributes := buildCredentialsAttributes(credentialAmount)
 
-	// Load public keys via the legacy method
-	if HasLoadedDomesticIssuerPks {
-		t.Fatal("HasLoadedDomesticIssuerPks flag is incorrectly true")
-	}
-
-	r1 := LoadDomesticIssuerPks(annotatedPksJson)
+	r1 := InitializeHolder("./testdata")
 	if r1.Error != "" {
-		t.Fatal("Could not load domestic issuer Pks:", r1.Error)
-	}
-
-	if !HasLoadedDomesticIssuerPks {
-		t.Fatal("HasLoadedDomesticIssuerPks flag is incorrectly false")
+		t.Fatal("Could not initialize holder:", r1.Error)
 	}
 
 	// Initialize verifier with testdata
-	r2 := ActualInitializeVerifier("./testdata")
+	r2 := InitializeVerifier("./testdata")
 	if r2.Error != "" {
 		t.Fatal("Could not initialize verifier:", r2.Error)
 	}

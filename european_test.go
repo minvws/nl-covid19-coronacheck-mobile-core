@@ -14,7 +14,7 @@ func TestExampleQRs(t *testing.T) {
 			t.Fatal("Could not read European credential:", r1.Error)
 		}
 
-		r2 := ActualInitializeVerifier("./testdata")
+		r2 := InitializeVerifier("./testdata")
 		if r2.Error != "" {
 			t.Fatal("Could not intialize verifier")
 		}

@@ -25,16 +25,7 @@ var (
 	europeanVerifier *hcertverifier.Verifier
 )
 
-// DEPRECATED: Remove this function once the mobile apps handle
-//  the (error) result and panic until then
-func InitializeVerifier(configDirectoryPath string) {
-	res := ActualInitializeVerifier(configDirectoryPath)
-	if res.Error != "" {
-		panic(res.Error)
-	}
-}
-
-func ActualInitializeVerifier(configDirectoryPath string) *Result {
+func InitializeVerifier(configDirectoryPath string) *Result {
 	configPath := path.Join(configDirectoryPath, VERIFIER_CONFIG_FILENAME)
 	pksPath := path.Join(configDirectoryPath, VERIFIER_PUBLIC_KEYS_FILENAME)
 
