@@ -17,7 +17,7 @@ func TestFlow(t *testing.T) {
 	credentialAmount := 3
 	credentialAttributes := buildCredentialsAttributes(credentialAmount)
 
-	// Load public keys
+	// Load public keys via the legacy method
 	if HasLoadedDomesticIssuerPks {
 		t.Fatal("HasLoadedDomesticIssuerPks flag is incorrectly true")
 	}
@@ -31,10 +31,16 @@ func TestFlow(t *testing.T) {
 		t.Fatal("HasLoadedDomesticIssuerPks flag is incorrectly false")
 	}
 
-	// Generate holder secret key
-	r2 := GenerateHolderSk()
+	// Initialize verifier with testdata
+	r2 := ActualInitializeVerifier("./testdata")
 	if r2.Error != "" {
-		t.Fatal("Could not generate holder secret key:", r2.Error)
+		t.Fatal("Could not initialize verifier:", r2.Error)
+	}
+
+	// Generate holdercore secret key
+	r3 := GenerateHolderSk()
+	if r3.Error != "" {
+		t.Fatal("Could not generate holdercore secret key:", r3.Error)
 	}
 
 	// Create a signer and issuer for the tests
@@ -55,13 +61,13 @@ func TestFlow(t *testing.T) {
 		t.Fatal("Could not JSON marshal prepare issue message:", err)
 	}
 
-	r3 := CreateCommitmentMessage(r2.Value, pimJson)
-	if r3.Error != "" {
-		t.Fatal("Could not create commitment message:", r3.Error)
+	r4 := CreateCommitmentMessage(r3.Value, pimJson)
+	if r4.Error != "" {
+		t.Fatal("Could not create commitment message:", r4.Error)
 	}
 
 	icm := new(gabi.IssueCommitmentMessage)
-	err = json.Unmarshal(r3.Value, icm)
+	err = json.Unmarshal(r4.Value, icm)
 	if err != nil {
 		t.Fatal("Could not unmarshal issue commitment message:", err)
 	}
@@ -82,24 +88,24 @@ func TestFlow(t *testing.T) {
 		t.Fatal("Could not marshal create credential messages:", err)
 	}
 
-	r4 := CreateCredentials(ccmsJson)
-	if r4.Error != "" {
-		t.Fatal("Could not create credential:", r4.Error)
+	r5 := CreateCredentials(ccmsJson)
+	if r5.Error != "" {
+		t.Fatal("Could not create credential:", r5.Error)
 	}
 
 	// Check back attributes returns on creation
-	var r4Values []*createCredentialResultValue
-	err = json.Unmarshal(r4.Value, &r4Values)
+	var r5Values []*CreateCredentialResultValue
+	err = json.Unmarshal(r5.Value, &r5Values)
 	if err != nil {
 		t.Fatal("Could not unmarshal create credential result values:", err)
 	}
 
-	if credentialAmount != len(r4Values) {
+	if credentialAmount != len(r5Values) {
 		t.Fatal("Invalid amount of create credential result values")
 	}
 
 	for i := 0; i < credentialAmount; i++ {
-		val := r4Values[i]
+		val := r5Values[i]
 
 		err := areAttributesEqualWithCredentialVersion(credentialAttributes[i], val.Attributes)
 		if err != nil {
@@ -112,26 +118,30 @@ func TestFlow(t *testing.T) {
 		}
 
 		// Read
-		r5 := ReadDomesticCredential(credJson)
-		if r5.Error != "" {
-			t.Fatal("Could not read credential:", r5.Error)
+		r6 := ReadDomesticCredential(credJson)
+		if r6.Error != "" {
+			t.Fatal("Could not read credential:", r6.Error)
 		}
 
-		err = checkAttributesJson(credentialAttributes[i], r5.Value)
+		err = checkAttributesJson(credentialAttributes[i], r6.Value)
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		// Disclose
-		r6 := Disclose(r2.Value, credJson)
-		if r6.Error != "" {
-			t.Fatal("Could not disclose credential:", r5.Error)
+		r7 := Disclose(r3.Value, credJson)
+		if r7.Error != "" {
+			t.Fatal("Could not disclose credential:", r6.Error)
 		}
 
-		// Verify
-		r7 := Verify(r6.Value)
-		if r7.Error != "" {
-			t.Fatal("Could not verify credential", r7.Error)
+		// Verify. Only the first two credentials should validate due to validFrom in future
+		r8 := Verify(r7.Value)
+		if i < 2 && r8.Error != "" {
+			t.Fatal("Could not verify credential:", r8.Error)
+		}
+
+		if i > 2 && r8.Error == "" {
+			t.Fatal("Credential should not validate due to validFrom in future")
 		}
 	}
 }
@@ -140,13 +150,13 @@ func buildCredentialsAttributes(credentialAmount int) []map[string]string {
 	cas := make([]map[string]string, 0, credentialAmount)
 
 	for i := 0; i < credentialAmount; i++ {
-		validFrom := time.Now().Round(time.Hour).AddDate(0, 0, i).UTC().Unix()
+		validFrom := time.Now().Truncate(time.Hour).AddDate(0, 0, i-1).UTC().Unix()
 
 		ca := map[string]string{
 			"isSpecimen":       "0",
 			"stripType":        "0",
 			"validFrom":        strconv.FormatInt(validFrom, 10),
-			"validForHours":    "24",
+			"validForHours":    "40",
 			"firstNameInitial": "A",
 			"lastNameInitial":  "R",
 			"birthDay":         "20",
@@ -189,7 +199,7 @@ func areAttributesEqualWithCredentialVersion(attributes map[string]string, decod
 	return nil
 }
 
-var testIssuerPkId = "testPk"
+var testIssuerPkId = "TEST-PK"
 var testIssuerPkXml = `
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <IssuerPublicKey xmlns="http://www.zurich.ibm.com/security/idemix">

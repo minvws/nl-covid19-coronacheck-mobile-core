@@ -12,6 +12,6 @@ require (
 
 replace (
 	github.com/minvws/base45-go v0.1.0 => github.com/confiks/base45-go v0.1.0
-	github.com/minvws/nl-covid19-coronacheck-hcert => ./nl-covid19-coronacheck-hcert-private
-	github.com/minvws/nl-covid19-coronacheck-idemix => ./nl-covid19-coronacheck-idemix-private
+	github.com/minvws/nl-covid19-coronacheck-hcert => ./hcert
+	github.com/minvws/nl-covid19-coronacheck-idemix => ./idemix
 )
