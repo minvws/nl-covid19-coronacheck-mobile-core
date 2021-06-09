@@ -8,6 +8,7 @@ import (
 	"github.com/privacybydesign/gabi"
 	"github.com/privacybydesign/gabi/big"
 	"strconv"
+	"time"
 )
 
 type CreateCredentialResultValue struct {
@@ -112,6 +113,10 @@ func ReadDomesticCredential(credJson []byte) *Result {
 }
 
 func Disclose(holderSkJson, credJson []byte) *Result {
+	return disclose(holderSkJson, credJson, time.Now())
+}
+
+func disclose(holderSkJson, credJson []byte, now time.Time) *Result {
 	holderSk, err := unmarshalHolderSk(holderSkJson)
 	if err != nil {
 		return ErrorResult(err)
@@ -122,7 +127,7 @@ func Disclose(holderSkJson, credJson []byte) *Result {
 		return ErrorResult(err)
 	}
 
-	proofBase45, err := domesticHolder.DiscloseAllWithTimeQREncoded(holderSk, cred)
+	proofBase45, err := domesticHolder.DiscloseAllWithTimeQREncoded(holderSk, cred, now)
 	if err != nil {
 		return WrappedErrorResult(err, "Could not disclosure credential")
 	}
@@ -154,6 +159,17 @@ func readCredentialWithVersion(cred *gabi.Credential) (map[string]string, error)
 	attributes, credVersion, err := holder.ReadCredential(cred)
 	if err != nil {
 		return nil, errors.WrapPrefix(err, "Could not read credential", 0)
+	}
+
+	// For v1 compatibility, add v2 and remove v1 attributes
+	if credVersion == 1 {
+		attributes["stripType"] = attributes["isPaperProof"]
+		attributes["validFrom"] = attributes["sampleTime"]
+		attributes["validForHours"] = V1_VALIDITY_HOURS_STR
+
+		delete(attributes, "isPaperProof")
+		delete(attributes, "testType")
+		delete(attributes, "sampleTime")
 	}
 
 	// Add the credential version to the attributes

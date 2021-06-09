@@ -8,22 +8,35 @@ import (
 )
 
 const (
-	QR_VALID_FOR_SECONDS = 180.0
+	QR_VALID_FOR_SECONDS  = 180.0
+	V1_VALIDITY_HOURS_STR = "40"
 )
 
-func verifyDomestic(proofBase45 []byte) (verificationResult *VerificationResult, err error) {
+func verifyDomestic(proofBase45 []byte, now time.Time) (verificationResult *VerificationResult, err error) {
 	verifiedCred, err := domesticVerifier.VerifyQREncoded(proofBase45)
 	if err != nil {
 		return nil, err
 	}
 
 	attributes := verifiedCred.Attributes
-	err = checkValidity(attributes["validFrom"], attributes["validForHours"])
+	var validFrom, validForHours, stripType string
+
+	if verifiedCred.CredentialVersion == 1 {
+		validFrom = attributes["sampleTime"]
+		validForHours = V1_VALIDITY_HOURS_STR
+		stripType = attributes["isPaperProof"]
+	} else {
+		validFrom = attributes["validFrom"]
+		validForHours = attributes["validForHours"]
+		stripType = attributes["stripType"]
+	}
+
+	err = checkValidity(validFrom, validForHours, now)
 	if err != nil {
 		return nil, err
 	}
 
-	err = checkFreshness(verifiedCred.UnixTimeSeconds, attributes["stripType"])
+	err = checkFreshness(verifiedCred.UnixTimeSeconds, stripType, now)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +54,7 @@ func verifyDomestic(proofBase45 []byte) (verificationResult *VerificationResult,
 	return verificationResult, nil
 }
 
-func checkValidity(validFromStr string, validForHoursStr string) error {
+func checkValidity(validFromStr string, validForHoursStr string, now time.Time) error {
 	validFrom, err := strconv.ParseInt(validFromStr, 10, 64)
 	if err != nil {
 		return errors.WrapPrefix(err, "Could not parse validFrom as int", 0)
@@ -52,7 +65,7 @@ func checkValidity(validFromStr string, validForHoursStr string) error {
 		return errors.WrapPrefix(err, "Could not parse validForHours as int", 0)
 	}
 
-	unixTimeNow := time.Now().UTC().Unix()
+	unixTimeNow := now.UTC().Unix()
 	if unixTimeNow < validFrom {
 		return errors.Errorf("The credential is not yet valid")
 	}
@@ -65,14 +78,14 @@ func checkValidity(validFromStr string, validForHoursStr string) error {
 	return nil
 }
 
-func checkFreshness(generatedAtTimestamp int64, isPaperProofStr string) error {
+func checkFreshness(generatedAtTimestamp int64, isPaperProofStr string, now time.Time) error {
 	// Paper proof are exempt from this check
 	if isPaperProofStr == "1" {
 		return nil
 	}
 
 	// Check if the time between now and
-	unixTimeNow := time.Now().UTC().Unix()
+	unixTimeNow := now.UTC().Unix()
 	if math.Abs(float64(unixTimeNow)-float64(generatedAtTimestamp)) > QR_VALID_FOR_SECONDS {
 		return errors.Errorf("The credential has been generated too long ago, or clock skew is too large")
 	}

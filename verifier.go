@@ -68,16 +68,20 @@ func InitializeVerifier(configDirectoryPath string) *Result {
 }
 
 func Verify(proofQREncoded []byte) *Result {
+	return verify(proofQREncoded, time.Now())
+}
+
+func verify(proofQREncoded []byte, now time.Time) *Result {
 	var verificationResult *VerificationResult
 	var err error
 
 	if hcertcommon.HasEUPrefix(proofQREncoded) {
-		verificationResult, err = verifyEuropean(proofQREncoded, time.Now())
+		verificationResult, err = verifyEuropean(proofQREncoded, now)
 		if err != nil {
 			return WrappedErrorResult(err, "Could not verify European QR code")
 		}
 	} else {
-		verificationResult, err = verifyDomestic(proofQREncoded)
+		verificationResult, err = verifyDomestic(proofQREncoded, now)
 		if err != nil {
 			return WrappedErrorResult(err, "Could not verify domestic QR code")
 		}

@@ -11,10 +11,7 @@ import (
 	"time"
 )
 
-func TestFlow(t *testing.T) {
-	credentialAmount := 3
-	credentialAttributes := buildCredentialsAttributes(credentialAmount)
-
+func TestInitialization(t *testing.T) {
 	r1 := InitializeHolder("./testdata")
 	if r1.Error != "" {
 		t.Fatal("Could not initialize holder:", r1.Error)
@@ -25,6 +22,11 @@ func TestFlow(t *testing.T) {
 	if r2.Error != "" {
 		t.Fatal("Could not initialize verifier:", r2.Error)
 	}
+}
+
+func TestFlow(t *testing.T) {
+	credentialAmount := 3
+	credentialAttributes := buildCredentialsAttributes(credentialAmount)
 
 	// Generate holdercore secret key
 	r3 := GenerateHolderSk()
@@ -135,6 +137,118 @@ func TestFlow(t *testing.T) {
 	}
 }
 
+func TestV1Flow(t *testing.T) {
+	now := time.Unix(1610043200, 0)
+	holderSkJSON := []byte(`"bX9ZMCX4iR/lEcmQY4p7YWmY+p5MQBkvvTHH/wTL0k8="`)
+	v1CredJSON := []byte(`
+		{
+		  "signature": {
+			"A": "MNH3AUD5CbFFwGLrxLJ95AEYVjxREc/0tRUFbJ80WI4q6raHfKCPN8UhX0A6H/n39cBFzgBH+6qJ4MLabBQ8TnIQRzCP97ssIbT7fyxwNGMtEkVaBOCcdVXKAbQekcxv4StRckmpMESO58Wg7ZiIc7PHHrfpr8R3Dqb1W95fc55sw9uVwGpUs6OK4R6/fLscCgJz7vaCmalNDUQ5VKTomO51ehOLEvv64FWgBpQG8UGaf03u46qU596zxQufIVMG648Nwq+/qDM80Hqr+xEYY9lI+4I7ok9t1J3iK9bLu4biGuEbIad/Cx4YQ70Kih/Bey1tUX14w/p1y+/yOVuzcg==",
+			"e": "EAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJyZQhz+XP8GQKBmpvpqn",
+			"v": "DR74Q66Vte4+fQRzoABtuLbB0irjknWXCRqDFExbt4JLahH2/nvlQbacFgnVyxq5H+v/rF3VCbhTeOEBGXkW0EpyEm6d+UfF00HM7Te+EkiOcPaxVKdG+DwnLqrpWWF+o5PgBcFVP7awligixzTQFHqoeIDkT/iXUVAKUTsV6ZcUZ4l02omYZ7dkDBaJVTrq7yYoswHoUuOIHmWgLLE/gtxLDtmKBlL1CCk4CryHJvFfAHNn3y6Qatz/LpjV7mhgJ5mc2kNwMumcVMQj0Y9XRLWTup1BnXotH88j3oo0IyaN+g6Yfjw0cQlEPw5RvZp+oPwBC95d75uoAxk0w54wQ39aXMk+9LgL7GlzJjz21EqfDnXhAYZn6Tm2Y3jE9Y90j5iUxDdxxAF7bP5eJKc1AI7swMvCtL5L+Hjis10JJK8a3luFwSOLycQwlUuAo1xo40A4kY5+O/0LxFpSAXZvBdM=",
+			"KeyshareP": null
+		  },
+		  "attributes": [
+			"bX9ZMCX4iR/lEcmQY4p7YWmY+p5MQBkvvTHH/wTL0k8=",
+			"YBYIAgImDOjK5uig1w==",
+			"YQ==",
+			"YQ==",
+			"oIal",
+			"YmxiYGBgYGBgYQ==",
+			"gw==",
+			"hQ==",
+			"Ymc=",
+			"ZQ=="
+		  ]
+		}
+	`)
+
+	// Read
+	r1 := ReadDomesticCredential(v1CredJSON)
+	if r1.Error != "" {
+		t.Fatal("Could not read v1 flow credential:", r1.Error)
+	}
+
+	var attributes map[string]string
+	err := json.Unmarshal(r1.Value, &attributes)
+	if err != nil {
+		t.Fatal("Could not JSON unmarshal v1 flow credential read result:", err.Error())
+	}
+
+	_, sampleTimeExists := attributes["sampleTime"]
+	_, testTypeExists := attributes["testType"]
+	_, isPaperProofExists := attributes["isPaperProof"]
+	if sampleTimeExists || testTypeExists || isPaperProofExists {
+		t.Fatal("Removed v1 values are present in v1 flow read result")
+	}
+
+	katamari := attributes["birthDay"] + attributes["validFrom"] + attributes["validForHours"] +
+		attributes["credentialVersion"] + attributes["firstNameInitial"] + attributes["isSpecimen"]
+
+	if katamari != "131610000000401A0" {
+		t.Fatal("Unexpected values in v1 flow credential read result")
+	}
+
+	// Disclose and verify
+	r2 := disclose(holderSkJSON, v1CredJSON, now)
+	if r2.Error != "" {
+		t.Fatal("Could not disclose v1 flow credential:", r2.Error)
+	}
+
+	r3 := verify(r2.Value, now)
+	if r3.Error != "" {
+		t.Fatal("Could not verify disclosed v1 flow credential:", r3.Error)
+	}
+
+	var verificationResult *VerificationResult
+	err = json.Unmarshal(r3.Value, &verificationResult)
+	if err != nil {
+		t.Fatal("Could not JSON unmarshal v1 flow verification result:", err.Error())
+	}
+
+	expectedVerificationResult := VerificationResult{
+		"1", "0", "A", "B", "13", "2", "",
+	}
+
+	if *verificationResult != expectedVerificationResult {
+		t.Fatal("Didn't get expected v1 flow verification result")
+	}
+}
+
+func TestExistingV1Cred(t *testing.T) {
+	// From https://coronacheck.nl/nl/scanner.html
+	v1QR := []byte(`1K9P/3FDC.%2H5N4$**$IVY+3$AE7S+/- 9MISOQ*AKZ0.X$8P-Y5SYKPK8U$8YELX+F0CR8W%DJ55Z2U23Z5*F:FEO.6CFIRFYAYZSS5WH62R*QKQORC0RKO6HB6BIT+- 0:7.61%8AMGN2AW+PJT01RD+MA/Y8*DL$C+.I/XZ-99Q6S9:0Q9G+CY1UE/R$0GH2IAA4BU*B+GVPJ:7O+ S.0MMCM0-O6FIEMU9 DG*AV 4GKCP:3FM/%XLQ/%DT-%R-H56/B+0N+JCNVO5 GVSH9E0:56/WCFB-ZQUR3OIGXJK3DAM1UO8VZ/Z:5HOPG UCMWX3 KBUBAD7$/B.F.H./Z9SXC3CT$A9SA*/5:6QP440RG+XV+WISHA55Y18O3W/EU:CLJDWLOII$0OY 0TT9V:D/6JT.V8I3VK4G4R-JQFE1ESBS-6S0M71WVB%+QG4P.206Z.PN60JS7YK8W+G-XL1Z2B9IKFAP+7.+/B0/REF RTB5/8 A$2$X2.3T4RV2QRI4EG1.ZTZX7 GFV:EV7I GYJBL2X945/:TN-0P72R2OXUXJFV07YXZ%6R1F+YWSTX2CR-MN0O$-M8RE*F32DH51*BV.*6K6FZFMZ+KTE6KXQ6HED8E.ZNU-.WLJH:W8DESF/IX32L.2AVI%ZIH5TF-BM-XSW7H4J:7IGNUQL6KF2OVQ+2P63X9-YBC*U/56BE-E7/WAV1MI-  ZDC:0O+VK-M79E%D0-W9JX5C25$ZOH+ 8LG.*4QPJF1./CKSHPL1+9UJ$04Q8OFQR7N/ESJ6VW52G%R R6MKM7I:-FKQ7VCRHCWKCD4ZE+G /:X%R-7$0 6HB8R2XP3QZSOFX5K1F682Q6+.USIT+/Z90VGYC2E5EF7 PSJ1+ M/L:TSKD7*RO:ARGT952G0WA0.:380I*IBCAKZ49BGGV*C10*-5B$53G4R8EWF13Z5P B7JMDF-N/4UZ`)
+
+	// 41 hours after sampleTime
+	invalidTime := time.Unix(1623373200, 0)
+	r1 := verify(v1QR, invalidTime)
+	if r1.Error == "" {
+		t.Fatal("Existing v1 credential should not verify after validity time")
+	}
+
+	// 39 hours after sampleTime
+	validTime := time.Unix(1623366000, 0)
+
+	r2 := verify(v1QR, validTime)
+	if r2.Error != "" {
+		t.Fatal("Could not verify existing v1 credential: " + r2.Error)
+	}
+
+	var verificationResult *VerificationResult
+	err := json.Unmarshal(r2.Value, &verificationResult)
+	if err != nil {
+		t.Fatal("Could not JSON unmarshal existing v1 verification result:", err.Error())
+	}
+
+	expectedVerificationResult := VerificationResult{
+		"1", "1", "B", "B", "17", "6", "",
+	}
+
+	if *verificationResult != expectedVerificationResult {
+		t.Fatal("Didn't get expected existing v1 verification result")
+	}
+}
+
 func buildCredentialsAttributes(credentialAmount int) []map[string]string {
 	cas := make([]map[string]string, 0, credentialAmount)
 
@@ -188,7 +302,7 @@ func areAttributesEqualWithCredentialVersion(attributes map[string]string, decod
 	return nil
 }
 
-var testIssuerPkId = "TEST-PK"
+var testIssuerPkId = "testPk"
 var testIssuerPkXml = `
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <IssuerPublicKey xmlns="http://www.zurich.ibm.com/security/idemix">
