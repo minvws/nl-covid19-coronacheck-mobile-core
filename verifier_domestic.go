@@ -11,28 +11,34 @@ const (
 	QR_VALID_FOR_SECONDS = 180.0
 )
 
-func verifyDomestic(proofBase45 []byte) (attributes map[string]string, err error) {
+func verifyDomestic(proofBase45 []byte) (verificationResult *VerificationResult, err error) {
 	verifiedCred, err := domesticVerifier.VerifyQREncoded(proofBase45)
 	if err != nil {
 		return nil, err
 	}
 
-	attributes = verifiedCred.Attributes
+	attributes := verifiedCred.Attributes
 	err = checkValidity(attributes["validFrom"], attributes["validForHours"])
 	if err != nil {
 		return nil, err
 	}
 
-	err = checkFreshness(verifiedCred.UnixTimeSeconds, attributes["isPaperProof"])
+	err = checkFreshness(verifiedCred.UnixTimeSeconds, attributes["stripType"])
 	if err != nil {
 		return nil, err
 	}
 
-	// Add the credential version
-	attributes = verifiedCred.Attributes
-	attributes["credentialVersion"] = strconv.Itoa(verifiedCred.CredentialVersion)
+	// Build result
+	verificationResult = &VerificationResult{
+		CredentialVersion: strconv.Itoa(verifiedCred.CredentialVersion),
+		IsSpecimen:        attributes["isSpecimen"],
+		FirstNameInitial:  attributes["firstNameInitial"],
+		LastNameInitial:   attributes["lastNameInitial"],
+		BirthDay:          attributes["birthDay"],
+		BirthMonth:        attributes["birthMonth"],
+	}
 
-	return attributes, nil
+	return verificationResult, nil
 }
 
 func checkValidity(validFromStr string, validForHoursStr string) error {

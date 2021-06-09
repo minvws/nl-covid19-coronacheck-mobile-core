@@ -32,19 +32,6 @@ var (
 	RECOVERY_VALID_UNTIL_DURATION = time.Duration(RECOVERY_VALID_UNTIL_DAYS*24) * time.Hour
 )
 
-// VerificationResult very much mimics the domestic verifier attributes, with only string type values,
-//  to minimize app-side changes. In the future, both should return properly typed values.
-type VerificationResult struct {
-	CredentialVersion string `json:"credentialVersion"`
-	IsSpecimen        string `json:"isSpecimen"`
-	FirstNameInitial  string `json:"firstNameInitial"`
-	LastNameInitial   string `json:"lastNameInitial"`
-	BirthDay          string `json:"birthDay"`
-	BirthMonth        string `json:"birthMonth"`
-
-	IsNLDCC string `json:"isNLDCC"`
-}
-
 func verifyEuropean(proofQREncoded []byte, now time.Time) (*VerificationResult, error) {
 	// Validate signature and get health certificate
 	hcert, err := europeanVerifier.VerifyQREncoded(proofQREncoded)

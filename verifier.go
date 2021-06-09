@@ -15,6 +15,19 @@ const (
 	VERIFIER_PUBLIC_KEYS_FILENAME = "public_keys.json"
 )
 
+// VerificationResult very much mimics the domestic verifier attributes, with only string type values,
+//  to minimize app-side changes. In the future, both should return properly typed values.
+type VerificationResult struct {
+	CredentialVersion string `json:"credentialVersion"`
+	IsSpecimen        string `json:"isSpecimen"`
+	FirstNameInitial  string `json:"firstNameInitial"`
+	LastNameInitial   string `json:"lastNameInitial"`
+	BirthDay          string `json:"birthDay"`
+	BirthMonth        string `json:"birthMonth"`
+
+	IsNLDCC string `json:"isNLDCC"`
+}
+
 type verifierConfiguration struct {
 	// Until business rules are part of the config, we don't need anything from here
 }
@@ -55,25 +68,25 @@ func InitializeVerifier(configDirectoryPath string) *Result {
 }
 
 func Verify(proofQREncoded []byte) *Result {
-	var attributes interface{}
+	var verificationResult *VerificationResult
 	var err error
 
 	if hcertcommon.HasEUPrefix(proofQREncoded) {
-		attributes, err = verifyEuropean(proofQREncoded, time.Now())
+		verificationResult, err = verifyEuropean(proofQREncoded, time.Now())
 		if err != nil {
 			return WrappedErrorResult(err, "Could not verify European QR code")
 		}
 	} else {
-		attributes, err = verifyDomestic(proofQREncoded)
+		verificationResult, err = verifyDomestic(proofQREncoded)
 		if err != nil {
 			return WrappedErrorResult(err, "Could not verify domestic QR code")
 		}
 	}
 
-	attributesJson, err := json.Marshal(attributes)
+	verificationResultJson, err := json.Marshal(verificationResult)
 	if err != nil {
 		return WrappedErrorResult(err, "Could not JSON marshal verified attributes")
 	}
 
-	return &Result{attributesJson, ""}
+	return &Result{verificationResultJson, ""}
 }
