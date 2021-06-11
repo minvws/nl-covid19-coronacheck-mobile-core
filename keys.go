@@ -106,7 +106,11 @@ func (pkc *PublicKeysConfig) FindAndCacheEuropean(kid []byte) ([]interface{}, er
 		if annotatedPk.LoadedPk == nil {
 			// Allow parsing errors at this stage, so that kid collisions
 			//  cannot prevent another key from verifying
-			annotatedPk.LoadedPk, _ = x509.ParsePKIXPublicKey(annotatedPk.SubjectPk)
+			var err error
+			annotatedPk.LoadedPk, err = x509.ParsePKIXPublicKey(annotatedPk.SubjectPk)
+			if err != nil {
+				continue
+			}
 		}
 
 		pks = append(pks, annotatedPk.LoadedPk)
