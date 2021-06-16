@@ -127,12 +127,12 @@ func disclose(holderSkJson, credJson []byte, now time.Time) *Result {
 		return ErrorResult(err)
 	}
 
-	proofBase45, err := domesticHolder.DiscloseAllWithTimeQREncoded(holderSk, cred, now)
+	proofPrefixed, err := domesticHolder.DiscloseAllWithTimeQREncoded(holderSk, cred, now)
 	if err != nil {
 		return WrappedErrorResult(err, "Could not disclosure credential")
 	}
 
-	return &Result{proofBase45, ""}
+	return &Result{proofPrefixed, ""}
 }
 
 func unmarshalHolderSk(holderSkJson []byte) (*big.Int, error) {

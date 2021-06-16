@@ -12,8 +12,8 @@ const (
 	V1_VALIDITY_HOURS_STR = "40"
 )
 
-func verifyDomestic(proofBase45 []byte, now time.Time) (verificationResult *VerificationResult, err error) {
-	verifiedCred, err := domesticVerifier.VerifyQREncoded(proofBase45)
+func verifyDomestic(proof []byte, now time.Time) (verificationResult *VerificationResult, err error) {
+	verifiedCred, err := domesticVerifier.VerifyQREncoded(proof)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func verifyDomestic(proofBase45 []byte, now time.Time) (verificationResult *Veri
 		return nil, err
 	}
 
-	err = checkFreshness(verifiedCred.UnixTimeSeconds, stripType, now)
+	err = checkFreshness(verifiedCred.DisclosureTimeSeconds, stripType, now)
 	if err != nil {
 		return nil, err
 	}
