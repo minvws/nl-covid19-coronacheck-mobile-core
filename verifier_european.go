@@ -17,19 +17,7 @@ const (
 var (
 	HCERT_SPECIMEN_EXPIRATION_TIME int64 = 42
 	DISEASE_TARGETED_COVID_19            = "840539006"
-
-	VACCINE_ALLOWED_MPS = []string{"EU/1/20/1528", "EU/1/20/1507", "EU/1/21/1529", "EU/1/20/1525"}
-
-	TEST_TYPE_RAT            = "LP217198-3"
-	TEST_TYPE_NAA            = "LP6464-4"
-	TEST_VALIDITY_HOURS      = 40
-	TEST_VALIDITY_DURATION   = time.Duration(TEST_VALIDITY_HOURS) * time.Hour
-	TEST_RESULT_NOT_DETECTED = "260415000"
-
-	RECOVERY_VALID_FROM_DAYS      = 11
-	RECOVERY_VALID_FROM_DURATION  = time.Duration(RECOVERY_VALID_FROM_DAYS*24) * time.Hour
-	RECOVERY_VALID_UNTIL_DAYS     = 180
-	RECOVERY_VALID_UNTIL_DURATION = time.Duration(RECOVERY_VALID_UNTIL_DAYS*24) * time.Hour
+	TEST_RESULT_NOT_DETECTED             = "260415000"
 )
 
 func verifyEuropean(proofQREncoded []byte, now time.Time) (*VerificationResult, error) {
@@ -164,7 +152,7 @@ func validateVaccination(vacc *hcertcommon.DCCVaccination, now time.Time) error 
 	}
 
 	// Allowed vaccine
-	if !containsString(VACCINE_ALLOWED_MPS, vacc.MedicinalProduct) {
+	if !containsString(verifierConfig.EuropeanVerificationRules.VaccineAllowedProducts, vacc.MedicinalProduct) {
 		return errors.Errorf("Medicinal product is not accepted")
 	}
 
@@ -181,7 +169,7 @@ func validateVaccination(vacc *hcertcommon.DCCVaccination, now time.Time) error 
 
 	nowDate := now.Truncate(24 * time.Hour).UTC()
 	if nowDate.Before(dov) {
-		return errors.Errorf("Date of vaccination is before the current time")
+		return errors.Errorf("Date of vaccination is before the current date")
 	}
 
 	return nil
@@ -195,8 +183,8 @@ func validateTest(test *hcertcommon.DCCTest, now time.Time) error {
 
 	// Test type
 	// The current business rules don't specify that we check for specific ma values
-	if test.TypeOfTest != TEST_TYPE_RAT && test.TypeOfTest != TEST_TYPE_NAA {
-		return errors.Errorf("Type should be RAT or NAA")
+	if !containsString(verifierConfig.EuropeanVerificationRules.TestAllowedTypes, test.TypeOfTest) {
+		return errors.Errorf("Type is not allowed")
 	}
 
 	// Test result
@@ -210,9 +198,12 @@ func validateTest(test *hcertcommon.DCCTest, now time.Time) error {
 		return errors.Errorf("Time of collection could not be parsed")
 	}
 
-	testExpirationTime := doc.Add(TEST_VALIDITY_DURATION)
+	testValidityHours := verifierConfig.EuropeanVerificationRules.TestValidityHours
+	testValidityDuration := time.Duration(testValidityHours) * time.Hour
+
+	testExpirationTime := doc.Add(testValidityDuration)
 	if testExpirationTime.Before(now) {
-		return errors.Errorf("Time of collection is more than %s ago", TEST_VALIDITY_DURATION.String())
+		return errors.Errorf("Time of collection is more than %s ago", testValidityDuration.String())
 	}
 
 	if now.Before(doc) {
@@ -234,9 +225,12 @@ func validateRecovery(rec *hcertcommon.DCCRecovery, now time.Time) error {
 	}
 
 	// Validity
-	// First calculate the validty according to our own rules
-	validFrom := testDate.Add(RECOVERY_VALID_FROM_DURATION)
-	validUntil := testDate.Add(RECOVERY_VALID_UNTIL_DURATION)
+	// First calculate the validity according to our own rules
+	validFromDays := verifierConfig.EuropeanVerificationRules.RecoveryValidFromDays
+	validUntilDays := verifierConfig.EuropeanVerificationRules.RecoveryValidUntilDays
+
+	validFrom := testDate.Add(time.Duration(validFromDays*24) * time.Hour)
+	validUntil := testDate.Add(time.Duration(validUntilDays*24) * time.Hour)
 
 	// If the specified validity is smaller on any side, use that specified validity
 	specifiedValidFrom, err := time.Parse(YYYYMMDD_FORMAT, rec.CertificateValidFrom)

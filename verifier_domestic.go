@@ -8,7 +8,6 @@ import (
 )
 
 const (
-	QR_VALID_FOR_SECONDS  = 180.0
 	V1_VALIDITY_HOURS_STR = "40"
 )
 
@@ -86,7 +85,8 @@ func checkFreshness(generatedAtTimestamp int64, isPaperProofStr string, now time
 
 	// Check if the time between now and
 	unixTimeNow := now.UTC().Unix()
-	if math.Abs(float64(unixTimeNow)-float64(generatedAtTimestamp)) > QR_VALID_FOR_SECONDS {
+	qrValidForSeconds := float64(verifierConfig.DomesticVerificationRules.QRValidForSeconds)
+	if math.Abs(float64(unixTimeNow)-float64(generatedAtTimestamp)) > qrValidForSeconds {
 		return errors.Errorf("The credential has been generated too long ago, or clock skew is too large")
 	}
 

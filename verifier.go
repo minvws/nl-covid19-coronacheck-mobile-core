@@ -2,6 +2,7 @@ package mobilecore
 
 import (
 	"encoding/json"
+	"github.com/go-errors/errors"
 	hcertcommon "github.com/minvws/nl-covid19-coronacheck-hcert/common"
 	hcertverifier "github.com/minvws/nl-covid19-coronacheck-hcert/verifier"
 	idemixverifier "github.com/minvws/nl-covid19-coronacheck-idemix/verifier"
@@ -29,7 +30,22 @@ type VerificationResult struct {
 }
 
 type verifierConfiguration struct {
-	// Until business rules are part of the config, we don't need anything from here
+	DomesticVerificationRules *domesticVerificationRules
+	EuropeanVerificationRules *europeanVerificationRules
+}
+
+type domesticVerificationRules struct {
+	QRValidForSeconds int `json:"qrValidForSeconds"`
+}
+
+type europeanVerificationRules struct {
+	TestAllowedTypes  []string `json:"testAllowedTypes"`
+	TestValidityHours int      `json:"testValidityHours"`
+
+	VaccineAllowedProducts []string `json:"vaccineAllowedProducts"`
+
+	RecoveryValidFromDays  int `json:"recoveryValidFromDays"`
+	RecoveryValidUntilDays int `json:"recoveryValidUntilDays"`
 }
 
 var (
@@ -52,6 +68,14 @@ func InitializeVerifier(configDirectoryPath string) *Result {
 	err = json.Unmarshal(configJson, &verifierConfig)
 	if err != nil {
 		return WrappedErrorResult(err, "Could not JSON unmarshal verifier config")
+	}
+
+	if verifierConfig.DomesticVerificationRules == nil {
+		return ErrorResult(errors.Errorf("The domestic verification rules were not present"))
+	}
+
+	if verifierConfig.EuropeanVerificationRules == nil {
+		return ErrorResult(errors.Errorf("The European verification rules were not present"))
 	}
 
 	// Read public keys
