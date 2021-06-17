@@ -43,13 +43,13 @@ func verifyEuropean(proofQREncoded []byte, now time.Time) (*VerificationResult, 
 }
 
 func validateHcert(hcert *hcertcommon.HealthCertificate, now time.Time) (isSpecimen bool, err error) {
-	if hcert.IssuedAt > hcert.ExpirationTime {
-		return false, errors.Errorf("Cannot be issued after it expires")
-	}
-
 	// Check for a 'magic' expirationTime value, to determine if it's a specimen certificate
 	if hcert.ExpirationTime == HCERT_SPECIMEN_EXPIRATION_TIME {
 		return true, nil
+	}
+
+	if hcert.IssuedAt > hcert.ExpirationTime {
+		return false, errors.Errorf("Cannot be issued after it expires")
 	}
 
 	expirationTime := time.Unix(hcert.ExpirationTime, 0)
