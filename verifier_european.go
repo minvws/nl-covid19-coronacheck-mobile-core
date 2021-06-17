@@ -315,10 +315,10 @@ func containsString(list []string, target string) bool {
 	return false
 }
 
-func parseDateOfBirth(value string) (year, month, day string, err error) {
-	re := regexp.MustCompile(`^(?:((?:19|20)\d\d)(?:-(\d\d)(?:-(\d\d))?)?)?$`)
+var dateOfBirthRegex = regexp.MustCompile(`^(?:((?:19|20)\d\d)(?:-(\d\d)(?:-(\d\d))?)?)?$`)
 
-	res := re.FindStringSubmatch(value)
+func parseDateOfBirth(value string) (year, month, day string, err error) {
+	res := dateOfBirthRegex.FindStringSubmatch(value)
 	if len(res) != 4 {
 		return "", "", "", errors.Errorf("Did not conform to regex")
 	}
