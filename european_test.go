@@ -36,12 +36,51 @@ func TestExampleQRs(t *testing.T) {
 			IsSpecimen:        "0",
 			FirstNameInitial:  "A",
 			LastNameInitial:   "A",
-			BirthDay:          "1",
-			BirthMonth:        "1",
+			BirthDay:          "01",
+			BirthMonth:        "01",
 			IsNLDCC:           "1",
 		}
 		if *vr != expectedResult {
 			t.Fatal("An unexpected result was returned")
+		}
+	}
+}
+
+func TestParseBirthDay(t *testing.T) {
+	cases := [][]string{
+		{"1980-01-12", "valid", "1980", "01", "12"},
+		{"2006-06-24", "valid", "2006", "06", "24"},
+		{"2020-12-05", "valid", "2020", "12", "05"},
+		{"1980-01", "valid", "1980", "01", ""},
+		{"1980", "valid", "1980", "", ""},
+		{"", "valid", "", "", ""},
+
+		{"1980-1-12", "invalid"},
+		{"1980-1--12", "invalid"},
+		{"1980-1-12", "invalid"},
+		{"1980-a1-12", "invalid"},
+
+		// We don't actually check if the date exists
+		{"1980-13-12", "valid", "1980", "13", "12"},
+		{"1980-02-31", "valid", "1980", "02", "31"},
+		{"1980-06-41", "valid", "1980", "06", "41"},
+		{"1980-31", "valid", "1980", "31", ""},
+	}
+
+	for i, c := range cases {
+		y, m, d, err := parseDateOfBirth(c[0])
+		if c[1] == "valid" {
+			if err != nil {
+				t.Fatal("Error on valid case", i)
+			}
+
+			if y != c[2] || m != c[3] || d != c[4] {
+				t.Fatal("Invalid value on case", i)
+			}
+		} else {
+			if err == nil {
+				t.Fatal("No error on invalid case", i)
+			}
 		}
 	}
 }

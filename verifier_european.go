@@ -3,21 +3,17 @@ package mobilecore
 import (
 	"github.com/go-errors/errors"
 	hcertcommon "github.com/minvws/nl-covid19-coronacheck-hcert/common"
-	"strconv"
+	"regexp"
 	"time"
 )
 
 const (
-	YYYYMMDD_FORMAT = "2006-01-02"
-	YYYYMM_FORMAT   = "2006-01"
-	YYYY_FORMAT     = "2006"
-)
-
-// These constants can be moved to the verifier configuration file in the future
-var (
 	HCERT_SPECIMEN_EXPIRATION_TIME int64 = 42
 	DISEASE_TARGETED_COVID_19            = "840539006"
 	TEST_RESULT_NOT_DETECTED             = "260415000"
+
+	YYYYMMDD_FORMAT = "2006-01-02"
+	DOB_EMPTY_VALUE = "XX"
 )
 
 func verifyEuropean(proofQREncoded []byte, now time.Time) (*VerificationResult, error) {
@@ -109,7 +105,7 @@ func validateDCC(dcc *hcertcommon.DCC, now time.Time) (err error) {
 }
 
 func validateDateOfBirth(dob string) error {
-	_, err := parseDateOfBirth(dob)
+	_, _, _, err := parseDateOfBirth(dob)
 	if err != nil {
 		return errors.WrapPrefix(err, "Invalid date of birth", 0)
 	}
@@ -118,8 +114,8 @@ func validateDateOfBirth(dob string) error {
 }
 
 func validateName(name *hcertcommon.DCCName) error {
-	if name.StandardisedFamilyName == "" {
-		return errors.Errorf("Standardize family name is missing")
+	if name.StandardisedFamilyName == "" && name.StandardisedGivenName == "" {
+		return errors.Errorf("Either the standardized family name or given name must be present")
 	}
 
 	return nil
@@ -273,29 +269,37 @@ func buildVerificationResult(hcert *hcertcommon.HealthCertificate, isSpecimen bo
 	}
 
 	// Normalize date of birth
-	dob, err := parseDateOfBirth(hcert.DCC.DateOfBirth)
+	_, birthMonth, birthDay, err := parseDateOfBirth(hcert.DCC.DateOfBirth)
 	if err != nil {
 		return nil, errors.WrapPrefix(err, "Could not parse date of birth", 0)
 	}
 
-	birthMonthStr := strconv.Itoa(int(dob.Month()))
-	birthDayStr := strconv.Itoa(dob.Day())
+	if birthMonth == "" {
+		birthMonth = DOB_EMPTY_VALUE
+	}
 
-	// Normalize name
-	givenNameInitial := hcert.DCC.Name.StandardisedFamilyName[0:1]
+	if birthDay == "" {
+		birthDay = DOB_EMPTY_VALUE
+	}
 
+	// Get first character of name(s)
 	firstNameInitial := ""
 	if len(hcert.DCC.Name.StandardisedGivenName) > 0 {
 		firstNameInitial = hcert.DCC.Name.StandardisedGivenName[0:1]
 	}
 
+	familyNameInitial := ""
+	if len(hcert.DCC.Name.StandardisedFamilyName) > 0 {
+		familyNameInitial = hcert.DCC.Name.StandardisedFamilyName[0:1]
+	}
+
 	return &VerificationResult{
 		CredentialVersion: "1",
 		IsSpecimen:        isSpecimenStr,
-		BirthMonth:        birthMonthStr,
-		BirthDay:          birthDayStr,
-		FirstNameInitial:  givenNameInitial,
-		LastNameInitial:   firstNameInitial,
+		BirthMonth:        birthMonth,
+		BirthDay:          birthDay,
+		FirstNameInitial:  firstNameInitial,
+		LastNameInitial:   familyNameInitial,
 
 		IsNLDCC: isNLDCC,
 	}, nil
@@ -311,21 +315,13 @@ func containsString(list []string, target string) bool {
 	return false
 }
 
-func parseDateOfBirth(value string) (res time.Time, err error) {
-	res, err = time.Parse(YYYYMMDD_FORMAT, value)
-	if err == nil {
-		return res, nil
+func parseDateOfBirth(value string) (year, month, day string, err error) {
+	re := regexp.MustCompile(`^(?:((?:19|20)\d\d)(?:-(\d\d)(?:-(\d\d))?)?)?$`)
+
+	res := re.FindStringSubmatch(value)
+	if len(res) != 4 {
+		return "", "", "", errors.Errorf("Did not conform to regex")
 	}
 
-	res, err = time.Parse(YYYYMM_FORMAT, value)
-	if err == nil {
-		return res, nil
-	}
-
-	res, err = time.Parse(YYYY_FORMAT, value)
-	if err == nil {
-		return res, nil
-	}
-
-	return time.Time{}, err
+	return res[1], res[2], res[3], nil
 }
