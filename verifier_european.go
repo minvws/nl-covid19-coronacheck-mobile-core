@@ -114,7 +114,7 @@ func validateDateOfBirth(dob string) error {
 }
 
 func validateName(name *hcertcommon.DCCName) error {
-	if name.StandardisedFamilyName == "" && name.StandardisedGivenName == "" {
+	if name.StandardizedFamilyName == "" && name.StandardizedGivenName == "" {
 		return errors.Errorf("Either the standardized family name or given name must be present")
 	}
 
@@ -284,13 +284,13 @@ func buildVerificationResult(hcert *hcertcommon.HealthCertificate, isSpecimen bo
 
 	// Get first character of name(s)
 	firstNameInitial := ""
-	if len(hcert.DCC.Name.StandardisedGivenName) > 0 {
-		firstNameInitial = hcert.DCC.Name.StandardisedGivenName[0:1]
+	if len(hcert.DCC.Name.StandardizedGivenName) > 0 {
+		firstNameInitial = hcert.DCC.Name.StandardizedGivenName[0:1]
 	}
 
 	familyNameInitial := ""
-	if len(hcert.DCC.Name.StandardisedFamilyName) > 0 {
-		familyNameInitial = hcert.DCC.Name.StandardisedFamilyName[0:1]
+	if len(hcert.DCC.Name.StandardizedFamilyName) > 0 {
+		familyNameInitial = hcert.DCC.Name.StandardizedFamilyName[0:1]
 	}
 
 	return &VerificationResult{
