@@ -18,16 +18,14 @@ func verifyDomestic(proof []byte, now time.Time) (verificationResult *Verificati
 	}
 
 	attributes := verifiedCred.Attributes
-	var validFrom, validForHours, stripType string
+	var validFrom, validForHours string
 
 	if verifiedCred.CredentialVersion == 1 {
 		validFrom = attributes["sampleTime"]
 		validForHours = V1_VALIDITY_HOURS_STR
-		stripType = attributes["isPaperProof"]
 	} else {
 		validFrom = attributes["validFrom"]
 		validForHours = attributes["validForHours"]
-		stripType = attributes["stripType"]
 	}
 
 	err = checkValidity(validFrom, validForHours, now)
@@ -35,7 +33,8 @@ func verifyDomestic(proof []byte, now time.Time) (verificationResult *Verificati
 		return nil, err
 	}
 
-	err = checkFreshness(verifiedCred.DisclosureTimeSeconds, stripType, now)
+	isPaperProof := attributes["isPaperProof"]
+	err = checkFreshness(verifiedCred.DisclosureTimeSeconds, isPaperProof, now)
 	if err != nil {
 		return nil, err
 	}

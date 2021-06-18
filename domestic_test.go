@@ -177,8 +177,7 @@ func TestV1Flow(t *testing.T) {
 
 	_, sampleTimeExists := attributes["sampleTime"]
 	_, testTypeExists := attributes["testType"]
-	_, isPaperProofExists := attributes["isPaperProof"]
-	if sampleTimeExists || testTypeExists || isPaperProofExists {
+	if sampleTimeExists || testTypeExists {
 		t.Fatal("Removed v1 values are present in v1 flow read result")
 	}
 
@@ -257,7 +256,7 @@ func buildCredentialsAttributes(credentialAmount int) []map[string]string {
 
 		ca := map[string]string{
 			"isSpecimen":       "0",
-			"stripType":        "0",
+			"isPaperProof":     "0",
 			"validFrom":        strconv.FormatInt(validFrom, 10),
 			"validForHours":    "40",
 			"firstNameInitial": "A",

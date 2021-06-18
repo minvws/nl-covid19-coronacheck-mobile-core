@@ -163,11 +163,9 @@ func readCredentialWithVersion(cred *gabi.Credential) (map[string]string, error)
 
 	// For v1 compatibility, add v2 and remove v1 attributes
 	if credVersion == 1 {
-		attributes["stripType"] = attributes["isPaperProof"]
 		attributes["validFrom"] = attributes["sampleTime"]
 		attributes["validForHours"] = V1_VALIDITY_HOURS_STR
 
-		delete(attributes, "isPaperProof")
 		delete(attributes, "testType")
 		delete(attributes, "sampleTime")
 	}
