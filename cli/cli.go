@@ -20,7 +20,7 @@ func main() {
 	commitmentsConfigPath := commitmentsCmd.String("configdir", "./testdata", "Config directory to use")
 
 	if len(os.Args) < 2 {
-		fmt.Println(availableCommandsMsg)
+		_, _ = fmt.Fprintln(os.Stderr, availableCommandsMsg)
 		os.Exit(1)
 	}
 
@@ -30,7 +30,7 @@ func main() {
 	case commitmentsCmd.Name():
 		_ = commitmentsCmd.Parse(os.Args[2:])
 	default:
-		fmt.Println(availableCommandsMsg)
+		_, _ = fmt.Fprintln(os.Stderr, availableCommandsMsg)
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
@@ -38,7 +38,7 @@ func main() {
 	if euqrCmd.Parsed() {
 		err := runEUQR(euqrCmd, euqrConfigPath)
 		if err != nil {
-			fmt.Println(err.Error())
+			_, _ = fmt.Fprintln(os.Stderr, err.Error())
 			os.Exit(1)
 		}
 	}
@@ -46,7 +46,7 @@ func main() {
 	if commitmentsCmd.Parsed() {
 		err := runCommitments(commitmentsCmd, commitmentsConfigPath, issuerNonceBase64)
 		if err != nil {
-			fmt.Println(err.Error())
+			_, _ = fmt.Fprintln(os.Stderr, err.Error())
 			os.Exit(1)
 		}
 	}
