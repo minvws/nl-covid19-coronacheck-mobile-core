@@ -1,6 +1,0 @@
-[submodule "hcert"]
-	path = hcert
-	url = git@github.com:minvws/nl-covid19-coronacheck-hcert-private.git
-[submodule "idemix"]
-	path = idemix
-	url = git@github.com:minvws/nl-covid19-coronacheck-idemix-private.git
