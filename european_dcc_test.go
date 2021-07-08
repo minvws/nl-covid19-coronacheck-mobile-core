@@ -111,6 +111,7 @@ func TestDCCs(t *testing.T) {
 		// vaccinationValidityDelayBasedOnVaccinationDate: false
 		{"V", vvdBasedOnCurrentDate, vaccChange("2021-07-09", "DateOfVaccination"), "2021-07-09", true},
 		{"V", vvdBasedOnCurrentDate, vaccChange("2021-07-09", "DateOfVaccination"), "2021-07-10", false},
+		{"V", vvdBasedOnCurrentDate, vaccChange("2021-07-10", "DateOfVaccination"), "2021-07-10", false},
 		{"V", vvdBasedOnCurrentDate, vaccChange("2021-07-10", "DateOfVaccination"), "2021-07-23", false},
 		{"V", vvdBasedOnCurrentDate, vaccChange("2021-07-10", "DateOfVaccination"), "2021-07-24", true},
 	}
