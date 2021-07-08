@@ -16,7 +16,7 @@ func TestExampleQRs(t *testing.T) {
 
 		r2 := InitializeVerifier("./testdata")
 		if r2.Error != "" {
-			t.Fatal("Could not initialize verifier")
+			t.Fatal("Could not initialize verifier", r2.Error)
 		}
 
 		r3 := Verify(exampleQR)

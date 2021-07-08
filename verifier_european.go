@@ -35,11 +35,13 @@ func verifyEuropean(proofQREncoded []byte, rules *europeanVerificationRules, now
 		return nil, false, errors.WrapPrefix(err, "Could not validate health certificate", 0)
 	}
 
+	// Validate DCC
 	err = validateDCC(hcert.DCC, rules, now)
 	if err != nil {
 		return nil, false, errors.WrapPrefix(err, "Could not validate DCC", 0)
 	}
 
+	// Build the resulting details
 	result, err := buildVerificationDetails(hcert, isSpecimen)
 	if err != nil {
 		return nil, false, err
@@ -54,11 +56,18 @@ func validateHcert(hcert *hcertcommon.HealthCertificate, now time.Time) (isSpeci
 		return true, nil
 	}
 
-	if hcert.IssuedAt > hcert.ExpirationTime {
+	// Check for invalid cases of issuedAt and expirationTime
+	issuedAt := time.Unix(hcert.IssuedAt, 0)
+	expirationTime := time.Unix(hcert.ExpirationTime, 0)
+
+	if expirationTime.Before(issuedAt) {
 		return false, errors.Errorf("Cannot be issued after it expires")
 	}
 
-	expirationTime := time.Unix(hcert.ExpirationTime, 0)
+	if now.Before(issuedAt) {
+		return false, errors.Errorf("Is issued before the current time")
+	}
+
 	if expirationTime.Before(now) {
 		return false, errors.Errorf("Is not valid anymore; was valid until %d", hcert.ExpirationTime)
 	}
@@ -170,8 +179,26 @@ func validateVaccination(vacc *hcertcommon.DCCVaccination, rules *europeanVerifi
 	}
 
 	nowDate := now.Truncate(24 * time.Hour).UTC()
-	if nowDate.Before(dov) {
-		return errors.Errorf("Date of vaccination is before the current date")
+
+	// Decide whether to use the delay, based on if either the vaccination date,
+	//  or the current date is after or equal to a configured into force date
+	var useVaccinationValidityDelay bool
+	if rules.VaccinationValidityDelayBasedOnVaccinationDate {
+		useVaccinationValidityDelay = !dov.Before(rules.vaccinationValidityDelayIntoForceDate)
+	} else {
+		useVaccinationValidityDelay = !nowDate.Before(rules.vaccinationValidityDelayIntoForceDate)
+	}
+
+	// Depending on whether the delay is used, decide if the vaccination is valid
+	if useVaccinationValidityDelay {
+		vaccinationValidFrom := dov.Add(time.Duration(rules.VaccinationValidityDelayDays*24) * time.Hour)
+		if nowDate.Before(vaccinationValidFrom) {
+			return errors.Errorf("Date of vaccination if before the delayed validity date")
+		}
+	} else {
+		if nowDate.Before(dov) {
+			return errors.Errorf("The current date is before the date of vaccination")
+		}
 	}
 
 	return nil
