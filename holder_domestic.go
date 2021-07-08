@@ -161,15 +161,6 @@ func readCredentialWithVersion(cred *gabi.Credential) (map[string]string, error)
 		return nil, errors.WrapPrefix(err, "Could not read credential", 0)
 	}
 
-	// For v1 compatibility, add v2 and remove v1 attributes
-	if credVersion == 1 {
-		attributes["validFrom"] = attributes["sampleTime"]
-		attributes["validForHours"] = V1_VALIDITY_HOURS_STR
-
-		delete(attributes, "testType")
-		delete(attributes, "sampleTime")
-	}
-
 	// Add the credential version to the attributes
 	attributes["credentialVersion"] = strconv.Itoa(credVersion)
 

@@ -7,10 +7,6 @@ import (
 	"time"
 )
 
-const (
-	V1_VALIDITY_HOURS_STR = "40"
-)
-
 func verifyDomestic(proof []byte, now time.Time) (verificationDetails *VerificationDetails, err error) {
 	verifiedCred, err := domesticVerifier.VerifyQREncoded(proof)
 	if err != nil {
@@ -18,17 +14,8 @@ func verifyDomestic(proof []byte, now time.Time) (verificationDetails *Verificat
 	}
 
 	attributes := verifiedCred.Attributes
-	var validFrom, validForHours string
 
-	if verifiedCred.CredentialVersion == 1 {
-		validFrom = attributes["sampleTime"]
-		validForHours = V1_VALIDITY_HOURS_STR
-	} else {
-		validFrom = attributes["validFrom"]
-		validForHours = attributes["validForHours"]
-	}
-
-	err = checkValidity(validFrom, validForHours, now)
+	err = checkValidity(attributes["validFrom"], attributes["validForHours"], now)
 	if err != nil {
 		return nil, err
 	}
