@@ -14,7 +14,7 @@ func ReadEuropeanCredential(proofPrefixed []byte) *Result {
 
 	// If the credential is a specimen, set the expirationTime to a year in the future
 	if hcert.ExpirationTime == HCERT_SPECIMEN_EXPIRATION_TIME {
-		hcert.ExpirationTime = time.Now().Add(365 * 24 * time.Hour).Unix()
+		hcert.ExpirationTime = time.Now().Add(28 * 24 * time.Hour).Unix()
 	}
 
 	// Marshal to JSON
