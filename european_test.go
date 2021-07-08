@@ -1,7 +1,6 @@
 package mobilecore
 
 import (
-	"encoding/json"
 	"testing"
 )
 
@@ -17,32 +16,28 @@ func TestExampleQRs(t *testing.T) {
 
 		r2 := InitializeVerifier("./testdata")
 		if r2.Error != "" {
-			t.Fatal("Could not intialize verifier")
+			t.Fatal("Could not initialize verifier")
 		}
 
 		r3 := Verify(exampleQR)
-		if r3.Error != "" {
-			t.Fatal("Could not verify European credential:", r3.Error)
+		if r3.Status != VERIFICATION_FAILED_IS_NL_DCC {
+			t.Fatal("Verification should because it's an NL DCC")
 		}
+		//if r3.Status != VERIFICATION_SUCCESS || r3.Error != "" {
+		//	t.Fatal("Could not verify European credential:", r3.Error)
+		//}
 
-		var vr *VerificationResult
-		err := json.Unmarshal(r3.Value, &vr)
-		if err != nil {
-			t.Fatal("Could not unmarshal verification result")
-		}
-
-		expectedResult := VerificationResult{
-			CredentialVersion: "1",
-			IsSpecimen:        "1",
-			FirstNameInitial:  "B",
-			LastNameInitial:   "B",
-			BirthDay:          "01",
-			BirthMonth:        "01",
-			IsNLDCC:           "1",
-		}
-		if *vr != expectedResult {
-			t.Fatal("An unexpected result was returned")
-		}
+		//expectedResult := VerificationDetails{
+		//	CredentialVersion: "1",
+		//	IsSpecimen:        "1",
+		//	FirstNameInitial:  "B",
+		//	LastNameInitial:   "B",
+		//	BirthDay:          "01",
+		//	BirthMonth:        "01",
+		//}
+		//if *r3.Details != expectedResult {
+		//	t.Fatal("An unexpected result was returned")
+		//}
 	}
 }
 

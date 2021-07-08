@@ -11,7 +11,7 @@ const (
 	V1_VALIDITY_HOURS_STR = "40"
 )
 
-func verifyDomestic(proof []byte, now time.Time) (verificationResult *VerificationResult, err error) {
+func verifyDomestic(proof []byte, now time.Time) (verificationDetails *VerificationDetails, err error) {
 	verifiedCred, err := domesticVerifier.VerifyQREncoded(proof)
 	if err != nil {
 		return nil, err
@@ -39,8 +39,8 @@ func verifyDomestic(proof []byte, now time.Time) (verificationResult *Verificati
 		return nil, err
 	}
 
-	// Build result
-	verificationResult = &VerificationResult{
+	// Build details
+	verificationDetails = &VerificationDetails{
 		CredentialVersion: strconv.Itoa(verifiedCred.CredentialVersion),
 		IsSpecimen:        attributes["isSpecimen"],
 		FirstNameInitial:  attributes["firstNameInitial"],
@@ -49,7 +49,7 @@ func verifyDomestic(proof []byte, now time.Time) (verificationResult *Verificati
 		BirthMonth:        attributes["birthMonth"],
 	}
 
-	return verificationResult, nil
+	return verificationDetails, nil
 }
 
 func checkValidity(validFromStr string, validForHoursStr string, now time.Time) error {

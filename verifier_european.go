@@ -11,35 +11,41 @@ const (
 	HCERT_SPECIMEN_EXPIRATION_TIME int64 = 42
 	DISEASE_TARGETED_COVID_19            = "840539006"
 	TEST_RESULT_NOT_DETECTED             = "260415000"
+	NL_COUNTRY_CODE                      = "NL"
 
 	YYYYMMDD_FORMAT = "2006-01-02"
 	DOB_EMPTY_VALUE = "XX"
 )
 
-func verifyEuropean(proofQREncoded []byte, now time.Time) (*VerificationResult, error) {
+func verifyEuropean(proofQREncoded []byte, now time.Time) (details *VerificationDetails, isNLDCC bool, err error) {
 	// Validate signature and get health certificate
 	hcert, err := europeanVerifier.VerifyQREncoded(proofQREncoded)
 	if err != nil {
-		return nil, err
+		return nil, false, err
+	}
+
+	// Exit early if it's an NL DCC
+	if hcert.Issuer == NL_COUNTRY_CODE {
+		return nil, true, nil
 	}
 
 	// Validate health certificate metadata, and see if it's a specimen certificate
 	isSpecimen, err := validateHcert(hcert, now)
 	if err != nil {
-		return nil, errors.WrapPrefix(err, "Could not validate health certificate", 0)
+		return nil, false, errors.WrapPrefix(err, "Could not validate health certificate", 0)
 	}
 
 	err = validateDCC(hcert.DCC, now)
 	if err != nil {
-		return nil, errors.WrapPrefix(err, "Could not validate DCC", 0)
+		return nil, false, errors.WrapPrefix(err, "Could not validate DCC", 0)
 	}
 
-	result, err := buildVerificationResult(hcert, isSpecimen)
+	result, err := buildVerificationDetails(hcert, isSpecimen)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
-	return result, nil
+	return result, false, nil
 }
 
 func validateHcert(hcert *hcertcommon.HealthCertificate, now time.Time) (isSpecimen bool, err error) {
@@ -255,13 +261,7 @@ func validateRecovery(rec *hcertcommon.DCCRecovery, now time.Time) error {
 	return nil
 }
 
-func buildVerificationResult(hcert *hcertcommon.HealthCertificate, isSpecimen bool) (*VerificationResult, error) {
-	// Determine issuer
-	isNLDCC := "0"
-	if hcert.Issuer == "NL" {
-		isNLDCC = "1"
-	}
-
+func buildVerificationDetails(hcert *hcertcommon.HealthCertificate, isSpecimen bool) (*VerificationDetails, error) {
 	// Determine specimen
 	isSpecimenStr := "0"
 	if isSpecimen {
@@ -293,15 +293,13 @@ func buildVerificationResult(hcert *hcertcommon.HealthCertificate, isSpecimen bo
 		familyNameInitial = hcert.DCC.Name.StandardizedFamilyName[0:1]
 	}
 
-	return &VerificationResult{
+	return &VerificationDetails{
 		CredentialVersion: "1",
 		IsSpecimen:        isSpecimenStr,
 		BirthMonth:        birthMonth,
 		BirthDay:          birthDay,
 		FirstNameInitial:  firstNameInitial,
 		LastNameInitial:   familyNameInitial,
-
-		IsNLDCC: isNLDCC,
 	}, nil
 }
 

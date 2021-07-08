@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/go-errors/errors"
@@ -72,7 +73,12 @@ func runEUQR(euqr *flag.FlagSet, configPath *string) error {
 		return errors.Errorf("QR did not verify: %s\n", verifyResult.Error)
 	}
 
-	fmt.Println(string(verifyResult.Value))
+	verificationDetailsJson, err := json.Marshal(verifyResult.Details)
+	if err != nil {
+		return errors.WrapPrefix(err, "Could not JSON marshal verification details", 0)
+	}
+
+	fmt.Println(string(verificationDetailsJson))
 	return nil
 }
 
