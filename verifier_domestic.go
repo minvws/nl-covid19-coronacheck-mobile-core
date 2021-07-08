@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func verifyDomestic(proof []byte, now time.Time) (verificationDetails *VerificationDetails, err error) {
+func verifyDomestic(proof []byte, rules *domesticVerificationRules, now time.Time) (verificationDetails *VerificationDetails, err error) {
 	verifiedCred, err := domesticVerifier.VerifyQREncoded(proof)
 	if err != nil {
 		return nil, err
@@ -21,7 +21,7 @@ func verifyDomestic(proof []byte, now time.Time) (verificationDetails *Verificat
 	}
 
 	isPaperProof := attributes["isPaperProof"]
-	err = checkFreshness(verifiedCred.DisclosureTimeSeconds, isPaperProof, now)
+	err = checkFreshness(verifiedCred.DisclosureTimeSeconds, isPaperProof, rules, now)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func checkValidity(validFromStr string, validForHoursStr string, now time.Time) 
 	return nil
 }
 
-func checkFreshness(generatedAtTimestamp int64, isPaperProofStr string, now time.Time) error {
+func checkFreshness(generatedAtTimestamp int64, isPaperProofStr string, rules *domesticVerificationRules, now time.Time) error {
 	// Paper proof are exempt from this check
 	if isPaperProofStr == "1" {
 		return nil
@@ -71,7 +71,7 @@ func checkFreshness(generatedAtTimestamp int64, isPaperProofStr string, now time
 
 	// Check if the time between now and
 	unixTimeNow := now.UTC().Unix()
-	qrValidForSeconds := float64(verifierConfig.DomesticVerificationRules.QRValidForSeconds)
+	qrValidForSeconds := float64(rules.QRValidForSeconds)
 	if math.Abs(float64(unixTimeNow)-float64(generatedAtTimestamp)) > qrValidForSeconds {
 		return errors.Errorf("The credential has been generated too long ago, or clock skew is too large")
 	}

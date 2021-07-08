@@ -17,7 +17,7 @@ const (
 	DOB_EMPTY_VALUE = "XX"
 )
 
-func verifyEuropean(proofQREncoded []byte, now time.Time) (details *VerificationDetails, isNLDCC bool, err error) {
+func verifyEuropean(proofQREncoded []byte, rules *europeanVerificationRules, now time.Time) (details *VerificationDetails, isNLDCC bool, err error) {
 	// Validate signature and get health certificate
 	hcert, err := europeanVerifier.VerifyQREncoded(proofQREncoded)
 	if err != nil {
@@ -35,7 +35,7 @@ func verifyEuropean(proofQREncoded []byte, now time.Time) (details *Verification
 		return nil, false, errors.WrapPrefix(err, "Could not validate health certificate", 0)
 	}
 
-	err = validateDCC(hcert.DCC, now)
+	err = validateDCC(hcert.DCC, rules, now)
 	if err != nil {
 		return nil, false, errors.WrapPrefix(err, "Could not validate DCC", 0)
 	}
@@ -66,7 +66,7 @@ func validateHcert(hcert *hcertcommon.HealthCertificate, now time.Time) (isSpeci
 	return false, nil
 }
 
-func validateDCC(dcc *hcertcommon.DCC, now time.Time) (err error) {
+func validateDCC(dcc *hcertcommon.DCC, rules *europeanVerificationRules, now time.Time) (err error) {
 	// Validate date of birth
 	err = validateDateOfBirth(dcc.DateOfBirth)
 	if err != nil {
@@ -87,21 +87,21 @@ func validateDCC(dcc *hcertcommon.DCC, now time.Time) (err error) {
 
 	// Validate statements
 	for _, vacc := range dcc.Vaccinations {
-		err = validateVaccination(vacc, now)
+		err = validateVaccination(vacc, rules, now)
 		if err != nil {
 			return errors.WrapPrefix(err, "Invalid vaccination statement", 0)
 		}
 	}
 
 	for _, test := range dcc.Tests {
-		err = validateTest(test, now)
+		err = validateTest(test, rules, now)
 		if err != nil {
 			return errors.WrapPrefix(err, "Invalid test statement", 0)
 		}
 	}
 
 	for _, rec := range dcc.Recoveries {
-		err = validateRecovery(rec, now)
+		err = validateRecovery(rec, rules, now)
 		if err != nil {
 			return errors.WrapPrefix(err, "Invalid recovery statement", 0)
 		}
@@ -147,14 +147,14 @@ func validateStatementAmount(dcc *hcertcommon.DCC) error {
 	return nil
 }
 
-func validateVaccination(vacc *hcertcommon.DCCVaccination, now time.Time) error {
+func validateVaccination(vacc *hcertcommon.DCCVaccination, rules *europeanVerificationRules, now time.Time) error {
 	// Disease agent
 	if vacc.DiseaseTargeted != DISEASE_TARGETED_COVID_19 {
 		return errors.Errorf("Disease targeted should be COVID-19")
 	}
 
 	// Allowed vaccine
-	if !containsString(verifierConfig.EuropeanVerificationRules.VaccineAllowedProducts, vacc.MedicinalProduct) {
+	if !containsString(rules.VaccineAllowedProducts, vacc.MedicinalProduct) {
 		return errors.Errorf("Medicinal product is not accepted")
 	}
 
@@ -177,7 +177,7 @@ func validateVaccination(vacc *hcertcommon.DCCVaccination, now time.Time) error 
 	return nil
 }
 
-func validateTest(test *hcertcommon.DCCTest, now time.Time) error {
+func validateTest(test *hcertcommon.DCCTest, rules *europeanVerificationRules, now time.Time) error {
 	// Disease agent
 	if test.DiseaseTargeted != DISEASE_TARGETED_COVID_19 {
 		return errors.Errorf("Disease targeted should be COVID-19")
@@ -185,7 +185,7 @@ func validateTest(test *hcertcommon.DCCTest, now time.Time) error {
 
 	// Test type
 	// The current business rules don't specify that we check for specific ma values
-	if !containsString(verifierConfig.EuropeanVerificationRules.TestAllowedTypes, test.TypeOfTest) {
+	if !containsString(rules.TestAllowedTypes, test.TypeOfTest) {
 		return errors.Errorf("Type is not allowed")
 	}
 
@@ -200,7 +200,7 @@ func validateTest(test *hcertcommon.DCCTest, now time.Time) error {
 		return errors.Errorf("Time of collection could not be parsed")
 	}
 
-	testValidityHours := verifierConfig.EuropeanVerificationRules.TestValidityHours
+	testValidityHours := rules.TestValidityHours
 	testValidityDuration := time.Duration(testValidityHours) * time.Hour
 
 	testExpirationTime := doc.Add(testValidityDuration)
@@ -215,7 +215,7 @@ func validateTest(test *hcertcommon.DCCTest, now time.Time) error {
 	return nil
 }
 
-func validateRecovery(rec *hcertcommon.DCCRecovery, now time.Time) error {
+func validateRecovery(rec *hcertcommon.DCCRecovery, rules *europeanVerificationRules, now time.Time) error {
 	// Disease agent
 	if rec.DiseaseTargeted != DISEASE_TARGETED_COVID_19 {
 		return errors.Errorf("Disease targeted should be COVID-19")
@@ -228,8 +228,8 @@ func validateRecovery(rec *hcertcommon.DCCRecovery, now time.Time) error {
 
 	// Validity
 	// First calculate the validity according to our own rules
-	validFromDays := verifierConfig.EuropeanVerificationRules.RecoveryValidFromDays
-	validUntilDays := verifierConfig.EuropeanVerificationRules.RecoveryValidUntilDays
+	validFromDays := rules.RecoveryValidFromDays
+	validUntilDays := rules.RecoveryValidUntilDays
 
 	validFrom := testDate.Add(time.Duration(validFromDays*24) * time.Hour)
 	validUntil := testDate.Add(time.Duration(validUntilDays*24) * time.Hour)

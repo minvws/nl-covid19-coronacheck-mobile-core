@@ -113,7 +113,7 @@ func verify(proofQREncoded []byte, now time.Time) *VerificationResult {
 
 	if hcertcommon.HasEUPrefix(proofQREncoded) {
 		var isNLDCC bool
-		verificationDetails, isNLDCC, err = verifyEuropean(proofQREncoded, now)
+		verificationDetails, isNLDCC, err = verifyEuropean(proofQREncoded, verifierConfig.EuropeanVerificationRules, now)
 		if err != nil {
 			return &VerificationResult{
 				Status: VERIFICATION_FAILED_ERROR,
@@ -127,7 +127,7 @@ func verify(proofQREncoded []byte, now time.Time) *VerificationResult {
 			}
 		}
 	} else if idemixverifier.HasNLPrefix(proofQREncoded) {
-		verificationDetails, err = verifyDomestic(proofQREncoded, now)
+		verificationDetails, err = verifyDomestic(proofQREncoded, verifierConfig.DomesticVerificationRules, now)
 		if err != nil {
 			return &VerificationResult{
 				Status: VERIFICATION_FAILED_ERROR,
