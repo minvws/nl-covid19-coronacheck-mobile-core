@@ -1,24 +1,22 @@
 package mobilecore
 
 import (
-	"crypto/x509"
-	"encoding/base64"
 	"encoding/json"
 	"github.com/go-errors/errors"
+	hcertverifier "github.com/minvws/nl-covid19-coronacheck-hcert/verifier"
 	"github.com/privacybydesign/gabi"
 	"os"
 )
 
 type PublicKeysConfig struct {
-	DomesticPks DomesticPksLookup `json:"nl_keys"`
-	EuropeanPks EuropeanPksLookup `json:"eu_keys"`
+	DomesticPks DomesticPksLookup               `json:"nl_keys"`
+	EuropeanPks hcertverifier.EuropeanPksLookup `json:"eu_keys"`
 
 	// DEPRECATED: Remove this struct when the transition to nl_keys is complete
 	LegacyDomesticPks []*AnnotatedDomesticPk `json:"cl_keys"`
 }
 
 type DomesticPksLookup map[string]*AnnotatedDomesticPk
-type EuropeanPksLookup map[string][]*AnnotatedEuropeanPk
 
 type AnnotatedDomesticPk struct {
 	PkXml    []byte          `json:"public_key"`
@@ -26,14 +24,6 @@ type AnnotatedDomesticPk struct {
 
 	// DEPRECATED: Remove this field together with LegacyDomesticPks
 	KID string `json:"id"`
-}
-
-type AnnotatedEuropeanPk struct {
-	SubjectPk []byte   `json:"subjectPk"`
-	KeyUsage  []string `json:"keyUsage"`
-
-	// LoadedPK is either of type *ecdsa.PublicKey or *rsa.PublicKey
-	LoadedPk interface{} `json:"-"`
 }
 
 func NewPublicKeysConfig(pksPath string, expectEuropeanKeys bool) (*PublicKeysConfig, error) {
@@ -93,32 +83,5 @@ func (pkc *PublicKeysConfig) FindAndCacheDomestic(kid string) (*gabi.PublicKey, 
 }
 
 func (pkc *PublicKeysConfig) FindAndCacheEuropean(kid []byte) ([]interface{}, error) {
-	// Check if key id is present
-	kidB64 := base64.StdEncoding.EncodeToString(kid)
-	annotatedPks, ok := pkc.EuropeanPks[kidB64]
-	if !ok {
-		return nil, errors.Errorf("Could not find European public key for this key id")
-	}
-
-	// Collect all (cached) public keys
-	pks := make([]interface{}, 0, len(annotatedPks))
-	for _, annotatedPk := range annotatedPks {
-		if annotatedPk.LoadedPk == nil {
-			// Allow parsing errors at this stage, so that kid collisions
-			//  cannot prevent another key from verifying
-			var err error
-			annotatedPk.LoadedPk, err = x509.ParsePKIXPublicKey(annotatedPk.SubjectPk)
-			if err != nil {
-				continue
-			}
-		}
-
-		pks = append(pks, annotatedPk.LoadedPk)
-	}
-
-	if len(pks) == 0 {
-		return nil, errors.Errorf("Could not find any valid European public keys for this key id")
-	}
-
-	return pks, nil
+	return pkc.EuropeanPks.FindAndCacheEuropean(kid)
 }
