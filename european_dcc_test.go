@@ -37,15 +37,8 @@ func TestHCerts(t *testing.T) {
 }
 
 func TestDCCs(t *testing.T) {
-	validVaccTime := "2021-06-10"
-	earlyVaccTime := "2021-06-01"
-	lateValidVaccTime := "2023-06-30"
-
+	validVaccTime := "2021-07-01"
 	rules := verifierConfig.EuropeanVerificationRules
-
-	vvdBasedOnCurrentDate := &europeanVerificationRules{}
-	*vvdBasedOnCurrentDate = *rules
-	vvdBasedOnCurrentDate.VaccinationValidityDelayBasedOnVaccinationDate = false
 
 	testCases := []dccTestCase{
 		// Different amount of statements
@@ -75,9 +68,12 @@ func TestDCCs(t *testing.T) {
 		// Vaccination
 		//
 		// Vaccination time
-		{"V", rules, nil, validVaccTime, true},
-		{"V", rules, nil, earlyVaccTime, false},
-		{"V", rules, nil, lateValidVaccTime, true},
+		{"V", rules, nil, "2021-06-07", false},
+		{"V", rules, nil, "2021-06-08", false},
+		{"V", rules, nil, "2021-06-09", false},
+		{"V", rules, nil, "2021-06-21", false},
+		{"V", rules, nil, "2021-06-22", true},
+		{"V", rules, nil, "2023-01-01", true},
 
 		// Disease targeted
 		{"V", rules, vaccChange("840539007", "DiseaseTargeted"), validVaccTime, false},
@@ -100,20 +96,6 @@ func TestDCCs(t *testing.T) {
 		// Other date formats
 		{"V", rules, vaccChange("2021-06-08T14:30Z", "DateOfVaccination"), validVaccTime, false},
 		{"V", rules, vaccChange("2021-06", "DateOfVaccination"), validVaccTime, false},
-
-		// Validity delays
-		{"V", rules, vaccChange("2021-07-09", "DateOfVaccination"), "2021-07-09", true},
-		{"V", rules, vaccChange("2021-07-09", "DateOfVaccination"), "2021-07-10", true},
-		{"V", rules, vaccChange("2021-07-10", "DateOfVaccination"), "2021-07-10", false},
-		{"V", rules, vaccChange("2021-07-10", "DateOfVaccination"), "2021-07-23", false},
-		{"V", rules, vaccChange("2021-07-10", "DateOfVaccination"), "2021-07-24", true},
-
-		// vaccinationValidityDelayBasedOnVaccinationDate: false
-		{"V", vvdBasedOnCurrentDate, vaccChange("2021-07-09", "DateOfVaccination"), "2021-07-09", true},
-		{"V", vvdBasedOnCurrentDate, vaccChange("2021-07-09", "DateOfVaccination"), "2021-07-10", false},
-		{"V", vvdBasedOnCurrentDate, vaccChange("2021-07-10", "DateOfVaccination"), "2021-07-10", false},
-		{"V", vvdBasedOnCurrentDate, vaccChange("2021-07-10", "DateOfVaccination"), "2021-07-23", false},
-		{"V", vvdBasedOnCurrentDate, vaccChange("2021-07-10", "DateOfVaccination"), "2021-07-24", true},
 	}
 
 	for i, testCase := range testCases {

@@ -172,33 +172,16 @@ func validateVaccination(vacc *hcertcommon.DCCVaccination, rules *europeanVerifi
 		return errors.Errorf("Dose number is smaller than the specified total amount of doses")
 	}
 
-	// Date of vaccination
+	// Date of vaccination with a configured delay in validity
 	dov, err := time.Parse(YYYYMMDD_FORMAT, vacc.DateOfVaccination)
 	if err != nil {
 		return errors.Errorf("Date of vaccination could not be parsed")
 	}
 
 	nowDate := now.Truncate(24 * time.Hour).UTC()
-
-	// Decide whether to use the delay, based on if either the vaccination date,
-	//  or the current date is after or equal to a configured into force date
-	var useVaccinationValidityDelay bool
-	if rules.VaccinationValidityDelayBasedOnVaccinationDate {
-		useVaccinationValidityDelay = !dov.Before(rules.vaccinationValidityDelayIntoForceDate)
-	} else {
-		useVaccinationValidityDelay = !nowDate.Before(rules.vaccinationValidityDelayIntoForceDate)
-	}
-
-	// Depending on whether the delay is used, decide if the vaccination is valid
-	if useVaccinationValidityDelay {
-		vaccinationValidFrom := dov.Add(time.Duration(rules.VaccinationValidityDelayDays*24) * time.Hour)
-		if nowDate.Before(vaccinationValidFrom) {
-			return errors.Errorf("Date of vaccination is before the delayed validity date")
-		}
-	} else {
-		if nowDate.Before(dov) {
-			return errors.Errorf("The current date is before the date of vaccination")
-		}
+	vaccinationValidFrom := dov.Add(time.Duration(rules.VaccinationValidityDelayDays*24) * time.Hour)
+	if nowDate.Before(vaccinationValidFrom) {
+		return errors.Errorf("Date of vaccination is before the delayed validity date")
 	}
 
 	return nil

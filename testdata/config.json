@@ -19,8 +19,6 @@
       "LP6464-4"
     ],
     "testValidityHours": 40,
-    "vaccinationValidityDelayBasedOnVaccinationDate": true,
-    "vaccinationValidityDelayIntoForceDate": "2021-07-10",
     "vaccinationValidityDelayDays": 14,
     "vaccineAllowedProducts": [
       "EU/1/20/1528",
