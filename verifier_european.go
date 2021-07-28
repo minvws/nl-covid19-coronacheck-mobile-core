@@ -4,6 +4,7 @@ import (
 	"github.com/go-errors/errors"
 	hcertcommon "github.com/minvws/nl-covid19-coronacheck-hcert/common"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -15,6 +16,10 @@ const (
 
 	YYYYMMDD_FORMAT = "2006-01-02"
 	DOB_EMPTY_VALUE = "XX"
+)
+
+var (
+	DATE_OF_BIRTH_REGEX = regexp.MustCompile(`^(?:((?:19|20)\d\d)(?:-(\d\d)(?:-(\d\d))?)?)?$`)
 )
 
 func verifyEuropean(proofQREncoded []byte, rules *europeanVerificationRules, now time.Time) (details *VerificationDetails, isNLDCC bool, err error) {
@@ -158,12 +163,12 @@ func validateStatementAmount(dcc *hcertcommon.DCC) error {
 
 func validateVaccination(vacc *hcertcommon.DCCVaccination, rules *europeanVerificationRules, now time.Time) error {
 	// Disease agent
-	if vacc.DiseaseTargeted != DISEASE_TARGETED_COVID_19 {
+	if !trimmedStringEquals(vacc.DiseaseTargeted, DISEASE_TARGETED_COVID_19) {
 		return errors.Errorf("Disease targeted should be COVID-19")
 	}
 
 	// Allowed vaccine
-	if !containsString(rules.VaccineAllowedProducts, vacc.MedicinalProduct) {
+	if !containsTrimmedString(rules.VaccineAllowedProducts, vacc.MedicinalProduct) {
 		return errors.Errorf("Medicinal product is not accepted")
 	}
 
@@ -173,7 +178,7 @@ func validateVaccination(vacc *hcertcommon.DCCVaccination, rules *europeanVerifi
 	}
 
 	// Date of vaccination with a configured delay in validity
-	dov, err := time.Parse(YYYYMMDD_FORMAT, vacc.DateOfVaccination)
+	dov, err := parseDate(vacc.DateOfVaccination)
 	if err != nil {
 		return errors.Errorf("Date of vaccination could not be parsed")
 	}
@@ -189,18 +194,18 @@ func validateVaccination(vacc *hcertcommon.DCCVaccination, rules *europeanVerifi
 
 func validateTest(test *hcertcommon.DCCTest, rules *europeanVerificationRules, now time.Time) error {
 	// Disease agent
-	if test.DiseaseTargeted != DISEASE_TARGETED_COVID_19 {
+	if !trimmedStringEquals(test.DiseaseTargeted, DISEASE_TARGETED_COVID_19) {
 		return errors.Errorf("Disease targeted should be COVID-19")
 	}
 
 	// Test type
 	// The current business rules don't specify that we check for specific ma values
-	if !containsString(rules.TestAllowedTypes, test.TypeOfTest) {
+	if !containsTrimmedString(rules.TestAllowedTypes, test.TypeOfTest) {
 		return errors.Errorf("Type is not allowed")
 	}
 
 	// Test result
-	if test.TestResult != TEST_RESULT_NOT_DETECTED {
+	if !trimmedStringEquals(test.TestResult, TEST_RESULT_NOT_DETECTED) {
 		return errors.Errorf("Result should be negative (not detected)")
 	}
 
@@ -227,11 +232,11 @@ func validateTest(test *hcertcommon.DCCTest, rules *europeanVerificationRules, n
 
 func validateRecovery(rec *hcertcommon.DCCRecovery, rules *europeanVerificationRules, now time.Time) error {
 	// Disease agent
-	if rec.DiseaseTargeted != DISEASE_TARGETED_COVID_19 {
+	if trimmedStringEquals(rec.DiseaseTargeted, DISEASE_TARGETED_COVID_19) {
 		return errors.Errorf("Disease targeted should be COVID-19")
 	}
 
-	testDate, err := time.Parse(YYYYMMDD_FORMAT, rec.DateOfFirstPositiveTest)
+	testDate, err := parseDate(rec.DateOfFirstPositiveTest)
 	if err != nil {
 		return errors.Errorf("Date of first positive test could not be parsed")
 	}
@@ -245,12 +250,12 @@ func validateRecovery(rec *hcertcommon.DCCRecovery, rules *europeanVerificationR
 	validUntil := testDate.Add(time.Duration(validUntilDays*24) * time.Hour)
 
 	// If the specified validity is smaller on any side, use that specified validity
-	specifiedValidFrom, err := time.Parse(YYYYMMDD_FORMAT, rec.CertificateValidFrom)
+	specifiedValidFrom, err := parseDate(rec.CertificateValidFrom)
 	if err == nil && specifiedValidFrom.After(validFrom) {
 		validFrom = specifiedValidFrom
 	}
 
-	specifiedValidUntil, err := time.Parse(YYYYMMDD_FORMAT, rec.CertificateValidUntil)
+	specifiedValidUntil, err := parseDate(rec.CertificateValidUntil)
 	if err == nil && specifiedValidUntil.Before(validUntil) {
 		validUntil = specifiedValidUntil
 	}
@@ -313,9 +318,18 @@ func buildVerificationDetails(hcert *hcertcommon.HealthCertificate, isSpecimen b
 	}, nil
 }
 
-func containsString(list []string, target string) bool {
+// To handle the special case of BG/GR including spaces in certain values,
+//   all string values are trimmed before doing a equality check
+func trimmedStringEquals(untrimmed, compareTo string) bool {
+	trimmed := strings.TrimSpace(untrimmed)
+	return trimmed == compareTo
+}
+
+// Same as with trimmedStringEquals
+func containsTrimmedString(list []string, untrimmed string) bool {
+	trimmed := strings.TrimSpace(untrimmed)
 	for _, elem := range list {
-		if elem == target {
+		if elem == trimmed {
 			return true
 		}
 	}
@@ -323,10 +337,26 @@ func containsString(list []string, target string) bool {
 	return false
 }
 
-var dateOfBirthRegex = regexp.MustCompile(`^(?:((?:19|20)\d\d)(?:-(\d\d)(?:-(\d\d))?)?)?$`)
+// To handle the special case of BG including full ISO8601 date strings, all strings are
+//   reduced to their maximum length, so any following invalid information is ignored
+func truncateDateString(value string) string {
+	if len(value) > 10 {
+		return value[:10]
+	}
+
+	return value
+}
+
+func parseDate(value string) (time.Time, error) {
+	truncatedValue := truncateDateString(value)
+	return time.Parse(YYYYMMDD_FORMAT, truncatedValue)
+}
 
 func parseDateOfBirth(value string) (year, month, day string, err error) {
-	res := dateOfBirthRegex.FindStringSubmatch(value)
+	truncatedValue := truncateDateString(value)
+
+	// Birth dates may have the day absent, or both day and month absent
+	res := DATE_OF_BIRTH_REGEX.FindStringSubmatch(truncatedValue)
 	if len(res) != 4 {
 		return "", "", "", errors.Errorf("Did not conform to regex")
 	}

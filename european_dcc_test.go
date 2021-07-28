@@ -2,6 +2,7 @@ package mobilecore
 
 import (
 	"encoding/json"
+	"fmt"
 	hcertcommon "github.com/minvws/nl-covid19-coronacheck-hcert/common"
 	"reflect"
 	"strings"
@@ -53,6 +54,8 @@ func TestDCCs(t *testing.T) {
 		{"V", rules, dobChange(""), validVaccTime, true},
 		{"V", rules, dobChange("1890-01-01"), validVaccTime, false},
 		{"V", rules, dobChange("1990-01--01"), validVaccTime, false},
+		{"V", rules, dobChange("190-01-01"), validVaccTime, false},
+		{"V", rules, dobChange("90-01-01"), validVaccTime, false},
 
 		// Names
 		{"V", rules, nameChange("", "StandardizedFamilyName"), validVaccTime, true},
@@ -93,9 +96,24 @@ func TestDCCs(t *testing.T) {
 		{"V", rules, vaccDoseChange(0, 1), validVaccTime, false},
 		{"V", rules, vaccDoseChange(1, 2), validVaccTime, false},
 
-		// Other date formats
-		{"V", rules, vaccChange("2021-06-08T14:30Z", "DateOfVaccination"), validVaccTime, false},
+		// Insufficient information in vaccination date
+		{"V", rules, vaccChange("2021-06-1", "DateOfVaccination"), validVaccTime, false},
 		{"V", rules, vaccChange("2021-06", "DateOfVaccination"), validVaccTime, false},
+		{"V", rules, vaccChange("2021-1", "DateOfVaccination"), validVaccTime, false},
+		{"V", rules, vaccChange("2021", "DateOfVaccination"), validVaccTime, false},
+		{"V", rules, vaccChange("", "DateOfVaccination"), validVaccTime, false},
+
+		// Special case handling
+		//
+		// GR: Whitespaces in decoded mp field
+		{"V", rules, vaccChange("  EU/1/20/1528    ", "MedicinalProduct"), validVaccTime, true},
+		{"V", rules, vaccChange("\u00A0\u2001EU/1/20/1528\t", "MedicinalProduct"), validVaccTime, true},
+		{"V", rules, vaccChange(" Sputnik-V ", "MedicinalProduct"), validVaccTime, false},
+
+		// BG: Invalid information (like ISO8601 timestamps) in dates
+		{"V", rules, dobChange("1990-01-01T01:30Z"), validVaccTime, true},
+		{"V", rules, dobChange("1990-01-01meh"), validVaccTime, true},
+		{"V", rules, vaccChange("2021-06-08T14:30Z", "DateOfVaccination"), validVaccTime, true},
 	}
 
 	for i, testCase := range testCases {
@@ -108,7 +126,12 @@ func TestDCCs(t *testing.T) {
 		err = validateDCC(hcert.DCC, testCase.rules, now)
 		isValid := err == nil
 		if isValid != testCase.isValid {
-			t.Fatal("Got wrong isValid", isValid, "for test case", i)
+			errStr := ""
+			if err != nil {
+				errStr = fmt.Sprintf("(%s)", err.Error())
+			}
+
+			t.Fatalf("Got wrong isValid %t for test case %d %s", isValid, i, errStr)
 		}
 	}
 }
