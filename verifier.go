@@ -17,14 +17,16 @@ const (
 )
 
 const (
-	VERIFICATION_SUCCESS = iota
+	VERIFICATION_SUCCESS VerificationStatus = 1 + iota
 	VERIFICATION_FAILED_UNRECOGNIZED_PREFIX
 	VERIFICATION_FAILED_IS_NL_DCC
 	VERIFICATION_FAILED_ERROR
 )
 
+type VerificationStatus int
+
 type VerificationResult struct {
-	Status  int
+	Status  VerificationStatus
 	Details *VerificationDetails
 	Error   string
 }
@@ -119,35 +121,53 @@ func Verify(proofQREncoded []byte) *VerificationResult {
 }
 
 func verify(proofQREncoded []byte, now time.Time) *VerificationResult {
-	var verificationDetails *VerificationDetails
-	var err error
-
-	if hcertcommon.HasEUPrefix(proofQREncoded) {
-		var isNLDCC bool
-		verificationDetails, isNLDCC, err = verifyEuropean(proofQREncoded, verifierConfig.EuropeanVerificationRules, now)
-		if err != nil {
-			return &VerificationResult{
-				Status: VERIFICATION_FAILED_ERROR,
-				Error:  errors.WrapPrefix(err, "Could not verify european QR code", 0).Error(),
-			}
-		}
-
-		if isNLDCC {
-			return &VerificationResult{
-				Status: VERIFICATION_FAILED_IS_NL_DCC,
-			}
-		}
-	} else if idemixverifier.HasNLPrefix(proofQREncoded) {
-		verificationDetails, err = verifyDomestic(proofQREncoded, verifierConfig.DomesticVerificationRules, now)
-		if err != nil {
-			return &VerificationResult{
-				Status: VERIFICATION_FAILED_ERROR,
-				Error:  errors.WrapPrefix(err, "Could not verify domestic QR code", 0).Error(),
-			}
-		}
+	if idemixverifier.HasNLPrefix(proofQREncoded) {
+		return handleDomesticVerification(proofQREncoded, now)
 	} else {
+		return handleEuropeanVerification(proofQREncoded, now)
+	}
+}
+
+func handleDomesticVerification(proofQREncoded []byte, now time.Time) *VerificationResult {
+	verificationDetails, err := verifyDomestic(proofQREncoded, verifierConfig.DomesticVerificationRules, now)
+	if err != nil {
 		return &VerificationResult{
-			Status: VERIFICATION_FAILED_UNRECOGNIZED_PREFIX,
+			Status: VERIFICATION_FAILED_ERROR,
+			Error:  errors.WrapPrefix(err, "Could not verify domestic QR code", 0).Error(),
+		}
+	}
+
+	return &VerificationResult{
+		Status:  VERIFICATION_SUCCESS,
+		Details: verificationDetails,
+	}
+}
+
+func handleEuropeanVerification(proofQREncoded []byte, now time.Time) *VerificationResult {
+	// As some QR-codes by T-Systems apps miss the required prefix, add the prefix here if it isn't present
+	wasEUPrefixed := hcertcommon.HasEUPrefix(proofQREncoded)
+	if !wasEUPrefixed {
+		proofQREncoded = append([]byte{'H', 'C', '1', ':'}, proofQREncoded...)
+	}
+
+	verificationDetails, isNLDCC, err := verifyEuropean(proofQREncoded, verifierConfig.EuropeanVerificationRules, now)
+	if err != nil {
+		// If the QR-code wasn't prefixed and it didn't verify, assume that it wasn't a EU QR code
+		if !wasEUPrefixed {
+			return &VerificationResult{
+				Status: VERIFICATION_FAILED_UNRECOGNIZED_PREFIX,
+			}
+		}
+
+		return &VerificationResult{
+			Status: VERIFICATION_FAILED_ERROR,
+			Error:  errors.WrapPrefix(err, "Could not verify european QR code", 0).Error(),
+		}
+	}
+
+	if isNLDCC {
+		return &VerificationResult{
+			Status: VERIFICATION_FAILED_IS_NL_DCC,
 		}
 	}
 

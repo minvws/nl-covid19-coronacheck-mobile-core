@@ -2,16 +2,17 @@ package mobilecore
 
 import (
 	"testing"
+	"time"
 )
 
 func TestExampleQRs(t *testing.T) {
-	qrAmount := len(exampleQRs)
-	for i := 0; i < qrAmount; i++ {
-		exampleQR := exampleQRs[i]
+	now := time.Unix(1627462000, 0)
 
-		r1 := ReadEuropeanCredential(exampleQR)
-		if r1.Error != "" {
-			t.Fatal("Could not read European credential:", r1.Error)
+	for i, testcase := range qrTestcases {
+		r1 := ReadEuropeanCredential(testcase.qr)
+		couldRead := r1.Error == ""
+		if couldRead != testcase.expectedReadability {
+			t.Fatal("Expected readability", testcase.expectedReadability, "of testcase", i)
 		}
 
 		r2 := InitializeVerifier("./testdata")
@@ -19,25 +20,20 @@ func TestExampleQRs(t *testing.T) {
 			t.Fatal("Could not initialize verifier", r2.Error)
 		}
 
-		r3 := Verify(exampleQR)
-		if r3.Status != VERIFICATION_FAILED_IS_NL_DCC {
-			t.Fatal("Verification should because it's an NL DCC")
+		r3 := verify(testcase.qr, now)
+		didError := r3.Error != ""
+		expectError := testcase.expectedStatus == VERIFICATION_FAILED_ERROR
+		if didError != expectError {
+			t.Fatal("Presence of error is", didError, "while expecting", expectError)
 		}
-		//if r3.Status != VERIFICATION_SUCCESS || r3.Error != "" {
-		//	t.Fatal("Could not verify European credential:", r3.Error)
-		//}
 
-		//expectedResult := VerificationDetails{
-		//	CredentialVersion: "1",
-		//	IsSpecimen:        "1",
-		//	FirstNameInitial:  "B",
-		//	LastNameInitial:   "B",
-		//	BirthDay:          "01",
-		//	BirthMonth:        "01",
-		//}
-		//if *r3.Details != expectedResult {
-		//	t.Fatal("An unexpected result was returned")
-		//}
+		if r3.Status != testcase.expectedStatus {
+			t.Fatal("Expected status", testcase.expectedStatus, "of testcase", i, "but got", r3.Status)
+		}
+
+		if testcase.expectedStatus == VERIFICATION_SUCCESS && *r3.Details != *testcase.expectedDetails {
+			t.Fatal("Unexpected details for testcase", i)
+		}
 	}
 }
 
@@ -80,6 +76,23 @@ func TestParseBirthDay(t *testing.T) {
 	}
 }
 
-var exampleQRs = [][]byte{
-	[]byte(`HC1:NCF220E90T9WTWGVLKO99:WA09094V-SCX*4FBBZ$0*70J+9DN03E52F3HYQ3Q4Y50.FK8ZKO/EZKEZ967L6C56GVC*JC1A6C%63W5Y96746TPCBEC7ZKW.CX-C34EA4FXKEW.C8WEAH8MZAGY8 JC:.D.H8WJCI3D5WEAH8SH87:EDOL9WEQDD+Q6TW6FA7C466KCN9E%961A6DL6FA7D46.JCP9EJY8L/5M/5546.96VF6.JCBECB1A-:8$966469L6OF6VX6FVCPD0KQEPD0LVC6JD846Y96C465W5.A6UPC3JCUIA+EDL8FHZ95/D QEALEN44:+C%69AECAWE:34: CJ.CZKE9440/D+34S9E5LEWJC0FD3%4AIA%G7ZM81G72A6J+94G78G60IA:R8FIAA+9BC9VH9PS827A+*9AF6*09$68AFD1KF2B1F%8/STJ$U5:0B/KR/36V4+SM1I8Z%K8R44$41ZM/HM2D9.48T Q0B9ARCNO0TOS:UJA87$MOO3AOH55TJ4S1XND000FGW.UCN0F`),
+type qrTestcase struct {
+	qr                  []byte
+	expectedStatus      VerificationStatus
+	expectedDetails     *VerificationDetails
+	expectedReadability bool
+}
+
+var defaultQR = []byte(`HC1:NCFA20690T9WTWGVLK-49NJ3B0J$OCC*AX*4FBBD%1*702T9DN03E53F3560+$GY50.FK8ZKO/EZKEZ967L6C56GVC*JC1A6C%63W5Y96.96TPCBEC7ZKW.C%DDDZC.H8B%E5$CLPCG/D%DD*X8AH8MZAGY8 JC0/DAC81/DMPCG/DFUCL+9VY87:EDOL9WEQDD+Q6TW6FA7C466KCN9E%961A6DL6FA7D46.JCP9EJY8L/5M/5546.96VF6.JCBECB1A-:8$966469L6OF6VX6FVCPD0KQEPD0LVC6JD846Y96D464W5B56UPCBJCOT9+EDL8FHZ95/D QEALEN44:+C%69AECAWE:34: CJ.CZKE9440/D+34S9E5LEWJC0FD3%4AIA%G7ZM81G72A6J+9RG7SNAH7B5OAU1B2X6LH86T9N096*6G%6AF60Z9P48Q1RI.3/LC8LNQ5RK/4N$4E0W WMH/3OQC2:B0WV4JQS0DH-D$23UJNUL6U*9GDIFL06+61DHX85TD34009K5DIURQAK6RT5B000FGWI%3L*E`)
+var nlQR = []byte(`HC1:NCFA20690T9WTWGVLK-49NJ3B0J$OCC*AX*4FBBD%1*70J+9DN03E53F3560.PQY50.FK8ZKO/EZKEZ967L6C56GVC*JC1A6C%63W5Y96.96TPCBEC7ZKW.C%DDDZC.H8B%E5$CLPCG/D%DD*X8AH8MZAGY8 JC0/DAC81/DMPCG/DFUCL+9VY87:EDOL9WEQDD+Q6TW6FA7C466KCN9E%961A6DL6FA7D46.JCP9EJY8L/5M/5546.96VF6.JCBECB1A-:8$966469L6OF6VX6FVCPD0KQEPD0LVC6JD846Y96D464W5B56UPCBJCOT9+EDL8FHZ95/D QEALEN44:+C%69AECAWE:34: CJ.CZKE9440/D+34S9E5LEWJC0FD3%4AIA%G7ZM81G72A6J+9RG7SNAH7B5OAU1B2X6LH86T9N096*6G%6AF60Z9498-.ETWJB/ON3B+XAK7DF%HPZE9$BYKQUOF4:F25NZD0P6E+-0D%C4-3ISRA:PLO0PN6FN9HN0UUB7BBC%MB EXP8HE821WV%K000FGW6%II9F`)
+var defaultDetails = &VerificationDetails{"1", "A", "D", "15", "01", "1"}
+
+var qrTestcases = []*qrTestcase{
+	{defaultQR, VERIFICATION_SUCCESS, defaultDetails, true},
+	{defaultQR[:50], VERIFICATION_FAILED_ERROR, nil, false},
+	{defaultQR[6:], VERIFICATION_FAILED_UNRECOGNIZED_PREFIX, nil, false},
+	{nlQR, VERIFICATION_FAILED_IS_NL_DCC, nil, true},
+
+	// Special case of a missing prefix because of a T-Systems app problem
+	{defaultQR[4:], VERIFICATION_SUCCESS, defaultDetails, false},
 }
