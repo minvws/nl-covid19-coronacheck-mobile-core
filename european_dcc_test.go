@@ -103,6 +103,14 @@ func TestDCCs(t *testing.T) {
 		{"V", rules, vaccChange("2021", "DateOfVaccination"), validVaccTime, false},
 		{"V", rules, vaccChange("", "DateOfVaccination"), validVaccTime, false},
 
+		// Janssen handling
+		{"V", rules, vaccJanssen("2021-08-13"), "2021-08-26", false},
+		{"V", rules, vaccJanssen("2021-08-13"), "2021-08-27", true},
+		{"V", rules, vaccJanssen("2021-08-14"), "2021-09-10", false},
+		{"V", rules, vaccJanssen("2021-08-14"), "2021-09-11", true},
+		{"V", rules, vaccJanssen("2021-08-15"), "2021-09-11", false},
+		{"V", rules, vaccJanssen("2021-08-15"), "2021-09-12", true},
+
 		// Special case handling
 		//
 		// GR: Whitespaces in decoded mp field
@@ -227,6 +235,13 @@ func vaccDoseChange(dn, sd int) []structChange {
 	return append(
 		vaccChange(dn, "DoseNumber"),
 		vaccChange(sd, "TotalSeriesOfDoses")...,
+	)
+}
+
+func vaccJanssen(vaccinationDate string) []structChange {
+	return append(
+		vaccChange("EU/1/20/1525", "MedicinalProduct"),
+		vaccChange(vaccinationDate, "DateOfVaccination")...,
 	)
 }
 

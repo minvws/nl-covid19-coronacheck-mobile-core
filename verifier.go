@@ -56,15 +56,15 @@ type europeanVerificationRules struct {
 	TestAllowedTypes  []string `json:"testAllowedTypes"`
 	TestValidityHours int      `json:"testValidityHours"`
 
-	VaccinationValidityDelayBasedOnVaccinationDate bool     `json:"vaccinationValidityDelayBasedOnVaccinationDate"`
-	VaccinationValidityDelayIntoForceDateStr       string   `json:"vaccinationValidityDelayIntoForceDate"`
-	VaccinationValidityDelayDays                   int      `json:"vaccinationValidityDelayDays"`
-	VaccineAllowedProducts                         []string `json:"vaccineAllowedProducts"`
+	VaccinationValidityDelayDays               int      `json:"vaccinationValidityDelayDays"`
+	VaccinationJanssenValidityDelayDays        int      `json:"vaccinationJanssenValidityDelayDays"`
+	VaccinationJanssenValidityIntoForceDateStr string   `json:"vaccinationJanssenValidityDelayIntoForceDate"`
+	VaccineAllowedProducts                     []string `json:"vaccineAllowedProducts"`
 
 	RecoveryValidFromDays  int `json:"recoveryValidFromDays"`
 	RecoveryValidUntilDays int `json:"recoveryValidUntilDays"`
 
-	vaccinationValidityDelayIntoForceDate time.Time
+	vaccinationJanssenValidityDelayIntoForceDate time.Time
 }
 
 var (
@@ -98,9 +98,9 @@ func InitializeVerifier(configDirectoryPath string) *Result {
 	}
 
 	// Parse date once (and leave at default value if parsing goes awry)
-	verifierConfig.EuropeanVerificationRules.vaccinationValidityDelayIntoForceDate, _ = time.Parse(
+	verifierConfig.EuropeanVerificationRules.vaccinationJanssenValidityDelayIntoForceDate, _ = time.Parse(
 		YYYYMMDD_FORMAT,
-		verifierConfig.EuropeanVerificationRules.VaccinationValidityDelayIntoForceDateStr,
+		verifierConfig.EuropeanVerificationRules.VaccinationJanssenValidityIntoForceDateStr,
 	)
 
 	// Read public keys

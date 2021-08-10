@@ -9,10 +9,11 @@ import (
 )
 
 const (
-	HCERT_SPECIMEN_EXPIRATION_TIME int64 = 42
-	DISEASE_TARGETED_COVID_19            = "840539006"
-	TEST_RESULT_NOT_DETECTED             = "260415000"
-	NL_COUNTRY_CODE                      = "NL"
+	HCERT_SPECIMEN_EXPIRATION_TIME    int64 = 42
+	DISEASE_TARGETED_COVID_19               = "840539006"
+	TEST_RESULT_NOT_DETECTED                = "260415000"
+	VACCINE_MEDICINAL_PRODUCT_JANSSEN       = "EU/1/20/1525"
+	NL_COUNTRY_CODE                         = "NL"
 
 	YYYYMMDD_FORMAT = "2006-01-02"
 	DOB_EMPTY_VALUE = "XX"
@@ -177,14 +178,20 @@ func validateVaccination(vacc *hcertcommon.DCCVaccination, rules *europeanVerifi
 		return errors.Errorf("Dose number is smaller than the specified total amount of doses")
 	}
 
-	// Date of vaccination with a configured delay in validity
+	// Date of vaccination with a configured delay in validity, with a special case for Janssen
 	dov, err := parseDate(vacc.DateOfVaccination)
 	if err != nil {
 		return errors.Errorf("Date of vaccination could not be parsed")
 	}
 
+	validityDelayDays := rules.VaccinationValidityDelayDays
+	if trimmedStringEquals(vacc.MedicinalProduct, VACCINE_MEDICINAL_PRODUCT_JANSSEN) &&
+		!dov.Before(rules.vaccinationJanssenValidityDelayIntoForceDate) {
+		validityDelayDays = rules.VaccinationJanssenValidityDelayDays
+	}
+
 	nowDate := now.Truncate(24 * time.Hour).UTC()
-	vaccinationValidFrom := dov.Add(time.Duration(rules.VaccinationValidityDelayDays*24) * time.Hour)
+	vaccinationValidFrom := dov.Add(time.Duration(validityDelayDays*24) * time.Hour)
 	if nowDate.Before(vaccinationValidFrom) {
 		return errors.Errorf("Date of vaccination is before the delayed validity date")
 	}
