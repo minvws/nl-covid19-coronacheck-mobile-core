@@ -78,7 +78,7 @@ func TestParseBirthDay(t *testing.T) {
 
 type qrTestcase struct {
 	qr                  []byte
-	expectedStatus      VerificationStatus
+	expectedStatus      int
 	expectedDetails     *VerificationDetails
 	expectedReadability bool
 }

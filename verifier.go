@@ -17,16 +17,14 @@ const (
 )
 
 const (
-	VERIFICATION_SUCCESS VerificationStatus = 1 + iota
+	VERIFICATION_SUCCESS = 1 + iota
 	VERIFICATION_FAILED_UNRECOGNIZED_PREFIX
 	VERIFICATION_FAILED_IS_NL_DCC
 	VERIFICATION_FAILED_ERROR
 )
 
-type VerificationStatus int
-
 type VerificationResult struct {
-	Status  VerificationStatus
+	Status  int
 	Details *VerificationDetails
 	Error   string
 }
