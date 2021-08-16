@@ -239,7 +239,7 @@ func validateTest(test *hcertcommon.DCCTest, rules *europeanVerificationRules, n
 
 func validateRecovery(rec *hcertcommon.DCCRecovery, rules *europeanVerificationRules, now time.Time) error {
 	// Disease agent
-	if trimmedStringEquals(rec.DiseaseTargeted, DISEASE_TARGETED_COVID_19) {
+	if !trimmedStringEquals(rec.DiseaseTargeted, DISEASE_TARGETED_COVID_19) {
 		return errors.Errorf("Disease targeted should be COVID-19")
 	}
 
