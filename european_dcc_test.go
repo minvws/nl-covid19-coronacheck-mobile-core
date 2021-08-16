@@ -39,6 +39,9 @@ func TestHCerts(t *testing.T) {
 
 func TestDCCs(t *testing.T) {
 	validVaccTime := "2021-07-01"
+	validRecTime := "2021-08-15"
+	validTestTime := "2021-07-23T08:00:00Z"
+
 	rules := verifierConfig.EuropeanVerificationRules
 
 	testCases := []dccTestCase{
@@ -76,6 +79,7 @@ func TestDCCs(t *testing.T) {
 		{"V", rules, nil, "2021-06-09", false},
 		{"V", rules, nil, "2021-06-21", false},
 		{"V", rules, nil, "2021-06-22", true},
+		{"V", rules, nil, validVaccTime, true},
 		{"V", rules, nil, "2023-01-01", true},
 
 		// Disease targeted
@@ -111,6 +115,53 @@ func TestDCCs(t *testing.T) {
 		{"V", rules, vaccJanssen("2021-08-15"), "2021-09-11", false},
 		{"V", rules, vaccJanssen("2021-08-15"), "2021-09-12", true},
 
+		// Recovery
+		//
+		{"R", rules, nil, "2021-07-11", false},
+		{"R", rules, nil, "2021-07-12", true},
+		{"R", rules, nil, validRecTime, true},
+		{"R", rules, nil, "2021-09-12", true},
+		{"R", rules, nil, "2021-09-13", false},
+
+		// Disease targeted
+		{"R", rules, recChange("840539007", "DiseaseTargeted"), validRecTime, false},
+
+		//
+		{"R", rules, recChange("2021-06-30", "DateOfFirstPositiveTest"), "2021-07-11", false},
+		{"R", rules, recChange("2021-06-30", "DateOfFirstPositiveTest"), "2021-07-12", true},
+		{"R", rules, recChange("2021-07-02", "DateOfFirstPositiveTest"), "2021-07-12", false},
+		{"R", rules, recChange("2021-07-02", "DateOfFirstPositiveTest"), "2021-07-13", true},
+
+		{"R", rules, recChange("2021-07-01", "CertificateValidFrom"), "2021-07-11", false},
+		{"R", rules, recChange("2021-07-01", "CertificateValidFrom"), "2021-07-12", true},
+
+		{"R", rules, recChange("2021-07-01", "CertificateValidUntil"), "2021-07-12", false},
+		{"R", rules, recChange("2022-01-01", "CertificateValidUntil"), "2021-12-28", true},
+		{"R", rules, recChange("2022-01-01", "CertificateValidUntil"), "2021-12-29", false},
+
+		// Test
+		//
+		{"T", rules, nil, "2021-07-22", false},
+		{"T", rules, nil, "2021-07-22T20:21:59Z", false},
+		{"T", rules, nil, "2021-07-22T20:22:00Z", true},
+		{"T", rules, nil, validTestTime, true},
+		{"T", rules, nil, "2021-07-23T21:21:59Z", true},
+		{"T", rules, nil, "2021-07-23T21:22:01Z", false},
+		{"T", rules, nil, "2021-07-24", false},
+
+		// Disease targeted
+		{"T", rules, testChange("840539007", "DiseaseTargeted"), validTestTime, false},
+
+		// Test type
+		{"T", rules, testChange("LP217198-3", "TypeOfTest"), validTestTime, true},
+		{"T", rules, testChange("LP317198-4", "TypeOfTest"), validTestTime, false},
+
+		// Test result
+		{"T", rules, testChange("260373001", "TestResult"), validTestTime, false},
+
+		// Invalid datetime format
+		{"T", rules, testChange("2021-07-23", "DateTimeOfCollection"), validTestTime, false},
+
 		// Special case handling
 		//
 		// GR: Whitespaces in decoded mp field
@@ -125,9 +176,12 @@ func TestDCCs(t *testing.T) {
 	}
 
 	for i, testCase := range testCases {
-		now, err := time.Parse("2006-01-02", testCase.date)
+		now, err := time.Parse(time.RFC3339, testCase.now)
 		if err != nil {
-			t.Fatal("Could not parse date")
+			now, err = time.Parse("2006-01-02", testCase.now)
+			if err != nil {
+				t.Fatal("Could not parse date")
+			}
 		}
 
 		hcert := getHcert(testCase.statements, testCase.changes)
@@ -202,7 +256,7 @@ type dccTestCase struct {
 	statements string
 	rules      *europeanVerificationRules
 	changes    []structChange
-	date       string
+	now        string
 	isValid    bool
 }
 
@@ -227,7 +281,19 @@ func nameChange(value interface{}, key string) []structChange {
 }
 
 func vaccChange(value interface{}, key string) []structChange {
-	path := []interface{}{"DCC", "Vaccinations", 0, key}
+	return vaccRecTestChange(value, "Vaccinations", key)
+}
+
+func recChange(value interface{}, key string) []structChange {
+	return vaccRecTestChange(value, "Recoveries", key)
+}
+
+func testChange(value interface{}, key string) []structChange {
+	return vaccRecTestChange(value, "Tests", key)
+}
+
+func vaccRecTestChange(value interface{}, kind string, key string) []structChange {
+	path := []interface{}{"DCC", kind, 0, key}
 	return singleStructChange(value, path...)
 }
 
@@ -343,15 +409,31 @@ var vaccinationJson = []byte(`{
   "dn": 2,
   "sd": 2,
   "dt": "2021-06-08",
-  "co": "NLD",
+  "co": "NL",
   "is": "Ministry of Health Welfare and Sport",
-  "ci": "074f34f4-7972-469e-b6cf-8a5f2e8de110"
+  "ci": "URN:UCI:01:NL:ABCDEFGHIJKLMNOPQRST42#S"
 }`)
 
 var recoveryJson = []byte(`{
-  
+  "tg":"840539006",
+  "fr":"2021-07-01",
+  "co":"NL",
+  "is":"Ministry of Health Welfare and Sport",
+  "df":"2021-07-12",
+  "du":"2021-09-12",
+  "ci":"URN:UCI:01:NL:ABCDEFGHIJKLMNOPQRST42#S"
 }`)
 
 var testJson = []byte(`{
-  
+  "tg":"840539006",
+  "tt":"LP6464-4",
+  "nm":"",
+  "ma":"",
+  "sc":"2021-07-22T22:22:00+02:00",
+  "dr":"",
+  "tr":"260415000",
+  "tc":"Facility approved by the State of The Netherlands",
+  "co":"NL",
+  "is":"Ministry of Health Welfare and Sport",
+  "ci":"URN:UCI:01:NL:ABCDEFGHIJKLMNOPQRST42#S"
 }`)
