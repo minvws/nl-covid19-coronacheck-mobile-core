@@ -9,8 +9,8 @@ import (
 )
 
 type PublicKeysConfig struct {
-	DomesticPks DomesticPksLookup               `json:"nl_keys"`
-	EuropeanPks hcertverifier.EuropeanPksLookup `json:"eu_keys"`
+	DomesticPks DomesticPksLookup       `json:"nl_keys"`
+	EuropeanPks hcertverifier.PksLookup `json:"eu_keys"`
 
 	// DEPRECATED: Remove this struct when the transition to nl_keys is complete
 	LegacyDomesticPks []*AnnotatedDomesticPk `json:"cl_keys"`
@@ -80,8 +80,4 @@ func (pkc *PublicKeysConfig) FindAndCacheDomestic(kid string) (*gabi.PublicKey, 
 	}
 
 	return annotatedPk.LoadedPk, nil
-}
-
-func (pkc *PublicKeysConfig) FindAndCacheEuropean(kid []byte) ([]interface{}, error) {
-	return pkc.EuropeanPks.FindAndCacheEuropean(kid)
 }

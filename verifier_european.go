@@ -13,7 +13,6 @@ const (
 	DISEASE_TARGETED_COVID_19               = "840539006"
 	TEST_RESULT_NOT_DETECTED                = "260415000"
 	VACCINE_MEDICINAL_PRODUCT_JANSSEN       = "EU/1/20/1525"
-	NL_COUNTRY_CODE                         = "NL"
 
 	YYYYMMDD_FORMAT = "2006-01-02"
 	DOB_EMPTY_VALUE = "XX"
@@ -25,13 +24,15 @@ var (
 
 func verifyEuropean(proofQREncoded []byte, rules *europeanVerificationRules, now time.Time) (details *VerificationDetails, isNLDCC bool, err error) {
 	// Validate signature and get health certificate
-	hcert, err := europeanVerifier.VerifyQREncoded(proofQREncoded)
+	hcert, pk, err := europeanVerifier.VerifyQREncoded(proofQREncoded)
 	if err != nil {
 		return nil, false, err
 	}
 
-	// Exit early if it's an NL DCC
-	if hcert.Issuer == NL_COUNTRY_CODE {
+	// Exit early if it's an NL-issued CWT, so domestic credentials must be used instead
+	// As the constituent countries don't have domestic credentials, check if the subject alternative name
+	//  of the public key is present and NLD. In that case European credentials are allowed.
+	if hcert.Issuer == "NL" && (len(pk.SubjectAltName) != 3 || pk.SubjectAltName == "NLD") {
 		return nil, true, nil
 	}
 
