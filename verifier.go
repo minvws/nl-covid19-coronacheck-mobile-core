@@ -109,7 +109,7 @@ func InitializeVerifier(configDirectoryPath string) *Result {
 
 	// Initialize verifiers
 	domesticVerifier = idemixverifier.New(publicKeysConfig.FindAndCacheDomestic)
-	europeanVerifier = hcertverifier.New(publicKeysConfig.FindAndCacheEuropean)
+	europeanVerifier = hcertverifier.New(publicKeysConfig.EuropeanPks)
 
 	return &Result{nil, ""}
 }
