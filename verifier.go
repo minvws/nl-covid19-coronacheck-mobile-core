@@ -47,7 +47,8 @@ type verifierConfiguration struct {
 }
 
 type domesticVerificationRules struct {
-	QRValidForSeconds int `json:"qrValidForSeconds"`
+	QRValidForSeconds       int             `json:"qrValidForSeconds"`
+	ProofIdentifierDenylist map[string]bool `json:"proofIdentifierDenylist"`
 }
 
 type europeanVerificationRules struct {
@@ -173,4 +174,8 @@ func handleEuropeanVerification(proofQREncoded []byte, now time.Time) *Verificat
 		Status:  VERIFICATION_SUCCESS,
 		Details: verificationDetails,
 	}
+}
+
+func GetDomesticVerifier() *idemixverifier.Verifier {
+	return domesticVerifier
 }

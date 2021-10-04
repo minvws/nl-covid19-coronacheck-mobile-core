@@ -1,6 +1,7 @@
 package mobilecore
 
 import (
+	"encoding/base64"
 	"github.com/go-errors/errors"
 	"math"
 	"strconv"
@@ -13,8 +14,12 @@ func verifyDomestic(proof []byte, rules *domesticVerificationRules, now time.Tim
 		return nil, err
 	}
 
-	attributes := verifiedCred.Attributes
+	err = checkDenylist(verifiedCred.ProofIdentifier, rules.ProofIdentifierDenylist)
+	if err != nil {
+		return nil, err
+	}
 
+	attributes := verifiedCred.Attributes
 	err = checkValidity(attributes["validFrom"], attributes["validForHours"], now)
 	if err != nil {
 		return nil, err
@@ -74,6 +79,17 @@ func checkFreshness(generatedAtTimestamp int64, isPaperProofStr string, rules *d
 	qrValidForSeconds := float64(rules.QRValidForSeconds)
 	if math.Abs(float64(unixTimeNow)-float64(generatedAtTimestamp)) > qrValidForSeconds {
 		return errors.Errorf("The credential has been generated too long ago, or clock skew is too large")
+	}
+
+	return nil
+}
+
+func checkDenylist(proofIdentifier []byte, denyList map[string]bool) error {
+	proofIdentifierBase64 := base64.StdEncoding.EncodeToString(proofIdentifier)
+
+	denied, ok := denyList[proofIdentifierBase64]
+	if ok && denied {
+		return errors.Errorf("The credential identifier was present in the proof identifier denylist")
 	}
 
 	return nil
