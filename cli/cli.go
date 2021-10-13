@@ -6,12 +6,14 @@ import (
 	"flag"
 	"fmt"
 	"github.com/go-errors/errors"
+	hcertcommon "github.com/minvws/nl-covid19-coronacheck-hcert/common"
+	idemixverifier "github.com/minvws/nl-covid19-coronacheck-idemix/verifier"
 	mobilecore "github.com/minvws/nl-covid19-coronacheck-mobile-core"
 	"os"
 )
 
 func main() {
-	availableCommandsMsg := "Available commands: verifier, proofidentifier, commitments"
+	availableCommandsMsg := "Available commands: verify, proofidentifier, commitments"
 
 	// Subcommands
 	verifyCmd := flag.NewFlagSet("verify", flag.ExitOnError)
@@ -51,7 +53,7 @@ func main() {
 	}
 
 	if proofIdentifierCmd.Parsed() {
-		err := runProofDigest(proofIdentifierCmd, proofIdentifierConfigPath)
+		err := runProofIdentifier(proofIdentifierCmd, proofIdentifierConfigPath)
 		if err != nil {
 			_, _ = fmt.Fprintln(os.Stderr, err.Error())
 			os.Exit(1)
@@ -96,8 +98,8 @@ func runVerify(verifyFlags *flag.FlagSet, configPath *string) error {
 	return nil
 }
 
-func runProofDigest(pdFlags *flag.FlagSet, configPath *string) error {
-	qr := pdFlags.Arg(0)
+func runProofIdentifier(pdFlags *flag.FlagSet, configPath *string) error {
+	qr := []byte(pdFlags.Arg(0))
 	if len(qr) == 0 {
 		return errors.Errorf("No QR was given")
 	}
@@ -111,12 +113,31 @@ func runProofDigest(pdFlags *flag.FlagSet, configPath *string) error {
 		return errors.Errorf("Could not initialize verifier: %s\n", initializeResult.Error)
 	}
 
-	verifiedCred, err := mobilecore.GetDomesticVerifier().VerifyQREncoded([]byte(qr))
-	if err != nil {
-		return errors.WrapPrefix(err, "Could not verify QR", 0)
+	// Get verifier, verify either the domestic or European QR code, and get the proof identifier
+	domesticVerifier, europeanVerifier := mobilecore.GetVerifiersForCLI()
+
+	var proofIdentifier []byte
+	if idemixverifier.HasNLPrefix(qr) {
+		verifiedCred, err := domesticVerifier.VerifyQREncoded(qr)
+		if err != nil {
+			return errors.WrapPrefix(err, "Could not verify domestic QR", 0)
+		}
+
+		proofIdentifier = verifiedCred.ProofIdentifier
+		fmt.Printf("Domestic proofidentifier: ")
+	} else if hcertcommon.HasEUPrefix(qr) {
+		verifiedQR, err := europeanVerifier.VerifyQREncoded(qr)
+		if err != nil {
+			return errors.WrapPrefix(err, "Could not verify european QR", 0)
+		}
+
+		proofIdentifier = verifiedQR.ProofIdentifier
+		fmt.Printf("European proofidentifier: ")
+	} else {
+		return errors.Errorf("QR doesn't have EU or NL prefix")
 	}
 
-	proofIdentifierBase64 := base64.StdEncoding.EncodeToString(verifiedCred.ProofIdentifier)
+	proofIdentifierBase64 := base64.StdEncoding.EncodeToString(proofIdentifier)
 	fmt.Printf("%s\n", proofIdentifierBase64)
 
 	return nil

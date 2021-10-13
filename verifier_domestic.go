@@ -1,7 +1,6 @@
 package mobilecore
 
 import (
-	"encoding/base64"
 	"github.com/go-errors/errors"
 	"math"
 	"strconv"
@@ -79,17 +78,6 @@ func checkFreshness(generatedAtTimestamp int64, isPaperProofStr string, rules *d
 	qrValidForSeconds := float64(rules.QRValidForSeconds)
 	if math.Abs(float64(unixTimeNow)-float64(generatedAtTimestamp)) > qrValidForSeconds {
 		return errors.Errorf("The credential has been generated too long ago, or clock skew is too large")
-	}
-
-	return nil
-}
-
-func checkDenylist(proofIdentifier []byte, denyList map[string]bool) error {
-	proofIdentifierBase64 := base64.StdEncoding.EncodeToString(proofIdentifier)
-
-	denied, ok := denyList[proofIdentifierBase64]
-	if ok && denied {
-		return errors.Errorf("The credential identifier was present in the proof identifier denylist")
 	}
 
 	return nil

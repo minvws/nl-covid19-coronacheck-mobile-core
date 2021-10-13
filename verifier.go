@@ -1,6 +1,7 @@
 package mobilecore
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"github.com/go-errors/errors"
 	hcertcommon "github.com/minvws/nl-covid19-coronacheck-hcert/common"
@@ -62,6 +63,8 @@ type europeanVerificationRules struct {
 
 	RecoveryValidFromDays  int `json:"recoveryValidFromDays"`
 	RecoveryValidUntilDays int `json:"recoveryValidUntilDays"`
+
+	ProofIdentifierDenylist map[string]bool `json:"proofIdentifierDenylist"`
 
 	vaccinationJanssenValidityDelayIntoForceDate time.Time
 }
@@ -176,6 +179,17 @@ func handleEuropeanVerification(proofQREncoded []byte, now time.Time) *Verificat
 	}
 }
 
-func GetDomesticVerifier() *idemixverifier.Verifier {
-	return domesticVerifier
+func checkDenylist(proofIdentifier []byte, denyList map[string]bool) error {
+	proofIdentifierBase64 := base64.StdEncoding.EncodeToString(proofIdentifier)
+
+	denied, ok := denyList[proofIdentifierBase64]
+	if ok && denied {
+		return errors.Errorf("The credential identifier was present in the proof identifier denylist")
+	}
+
+	return nil
+}
+
+func GetVerifiersForCLI() (*idemixverifier.Verifier, *hcertverifier.Verifier) {
+	return domesticVerifier, europeanVerifier
 }

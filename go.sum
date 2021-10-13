@@ -128,8 +128,8 @@ github.com/minvws/base45-go v0.1.0 h1:xSQv04sHwL09r3OF3V62AwuVUelv2GGR0uzR5JQy6s
 github.com/minvws/base45-go v0.1.0/go.mod h1:czYbSci2g+xPB5SvQpg1zg1Y7cZ+3zD79wbS1M0LpvY=
 github.com/minvws/gabi v0.0.0-20210921115139-d07d39e65855 h1:0pHUd7Z4Oqb19teasapDqWIpNcFQWtax5KuuQ8mkFDc=
 github.com/minvws/gabi v0.0.0-20210921115139-d07d39e65855/go.mod h1:jeFGZYDk2XmxIjjGJ/nVL51bOC5+VtXKRJWYcarCxHU=
-github.com/minvws/nl-covid19-coronacheck-hcert v0.4.0 h1:G1oBUqVduThuYejv0BSCxoCsOCnUbsNtJZuiq0rhXkU=
-github.com/minvws/nl-covid19-coronacheck-hcert v0.4.0/go.mod h1:YRtssiwizZYWMVJTFwnL22jRALUmEr5ElmCUCSh9e8Q=
+github.com/minvws/nl-covid19-coronacheck-hcert v0.4.1 h1:L3v4T+E3cuVH4sthSX2+KV8yUOrK31I8XwxoRhwPPn8=
+github.com/minvws/nl-covid19-coronacheck-hcert v0.4.1/go.mod h1:YRtssiwizZYWMVJTFwnL22jRALUmEr5ElmCUCSh9e8Q=
 github.com/minvws/nl-covid19-coronacheck-idemix v0.5.2 h1:ntywjk+uE+EiSQ+op18ZT/mgJ+/upP4ofpP047qK4Zw=
 github.com/minvws/nl-covid19-coronacheck-idemix v0.5.2/go.mod h1:fRQrkyFm3Lqrg94grIlil9+6j9Xq8cqa+axtu7ld2ps=
 github.com/mitchellh/cli v1.0.0/go.mod h1:hNIlj7HEI86fIcpObd7a0FcrxTWetlwJDGcceTlRvqc=

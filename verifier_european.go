@@ -24,7 +24,16 @@ var (
 
 func verifyEuropean(proofQREncoded []byte, rules *europeanVerificationRules, now time.Time) (details *VerificationDetails, isNLDCC bool, err error) {
 	// Validate signature and get health certificate
-	hcert, pk, err := europeanVerifier.VerifyQREncoded(proofQREncoded)
+	verified, err := europeanVerifier.VerifyQREncoded(proofQREncoded)
+	if err != nil {
+		return nil, false, err
+	}
+
+	hcert := verified.HealthCertificate
+	pk := verified.PublicKey
+
+	// Check denylist
+	err = checkDenylist(verified.ProofIdentifier, rules.ProofIdentifierDenylist)
 	if err != nil {
 		return nil, false, err
 	}
