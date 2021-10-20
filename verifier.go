@@ -34,12 +34,13 @@ type VerificationResult struct {
 //  to minimize app-side changes. In the future, both should return properly typed values.
 type VerificationDetails struct {
 	CredentialVersion string `json:"credentialVersion"`
-	FirstNameInitial  string `json:"firstNameInitial"`
-	LastNameInitial   string `json:"lastNameInitial"`
-	BirthDay          string `json:"birthDay"`
-	BirthMonth        string `json:"birthMonth"`
+	IsSpecimen        string `json:"isSpecimen"`
+	IssuerCountryCode string `json:"issuerCountryCode"`
 
-	IsSpecimen string `json:"isSpecimen"`
+	FirstNameInitial string `json:"firstNameInitial"`
+	LastNameInitial  string `json:"lastNameInitial"`
+	BirthDay         string `json:"birthDay"`
+	BirthMonth       string `json:"birthMonth"`
 }
 
 type verifierConfiguration struct {

@@ -187,12 +187,13 @@ func buildCredentialsAttributes(credentialAmount int) []map[string]string {
 func attributesToVerificationDetails(attributes map[string]string) VerificationDetails {
 	return VerificationDetails{
 		CredentialVersion: "2",
-		FirstNameInitial:  attributes["firstNameInitial"],
-		LastNameInitial:   attributes["lastNameInitial"],
-		BirthDay:          attributes["birthDay"],
-		BirthMonth:        attributes["birthMonth"],
+		IsSpecimen:        attributes["isSpecimen"],
+		IssuerCountryCode: "NL",
 
-		IsSpecimen: attributes["isSpecimen"],
+		FirstNameInitial: attributes["firstNameInitial"],
+		LastNameInitial:  attributes["lastNameInitial"],
+		BirthDay:         attributes["birthDay"],
+		BirthMonth:       attributes["birthMonth"],
 	}
 }
 

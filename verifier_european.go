@@ -3,6 +3,7 @@ package mobilecore
 import (
 	"github.com/go-errors/errors"
 	hcertcommon "github.com/minvws/nl-covid19-coronacheck-hcert/common"
+	"github.com/minvws/nl-covid19-coronacheck-hcert/verifier"
 	"regexp"
 	"strings"
 	"time"
@@ -19,7 +20,12 @@ const (
 )
 
 var (
-	DATE_OF_BIRTH_REGEX = regexp.MustCompile(`^(?:((?:19|20)\d\d)(?:-(\d\d)(?:-(\d\d))?)?)?$`)
+	DATE_OF_BIRTH_REGEX     = regexp.MustCompile(`^(?:((?:19|20)\d\d)(?:-(\d\d)(?:-(\d\d))?)?)?$`)
+	CAS_SAN_TO_COUNTRY_CODE = map[string]string{
+		"ABW": "AW",
+		"CUW": "CW",
+		"SXM": "SX",
+	}
 )
 
 func verifyEuropean(proofQREncoded []byte, rules *europeanVerificationRules, now time.Time) (details *VerificationDetails, isNLDCC bool, err error) {
@@ -58,7 +64,7 @@ func verifyEuropean(proofQREncoded []byte, rules *europeanVerificationRules, now
 	}
 
 	// Build the resulting details
-	result, err := buildVerificationDetails(hcert, isSpecimen)
+	result, err := buildVerificationDetails(hcert, pk, isSpecimen)
 	if err != nil {
 		return nil, false, err
 	}
@@ -293,7 +299,7 @@ func validateRecovery(rec *hcertcommon.DCCRecovery, rules *europeanVerificationR
 	return nil
 }
 
-func buildVerificationDetails(hcert *hcertcommon.HealthCertificate, isSpecimen bool) (*VerificationDetails, error) {
+func buildVerificationDetails(hcert *hcertcommon.HealthCertificate, pk *verifier.AnnotatedEuropeanPk, isSpecimen bool) (*VerificationDetails, error) {
 	// Determine specimen
 	isSpecimenStr := "0"
 	if isSpecimen {
@@ -325,13 +331,25 @@ func buildVerificationDetails(hcert *hcertcommon.HealthCertificate, isSpecimen b
 		familyNameInitial = hcert.DCC.Name.StandardizedFamilyName[0:1]
 	}
 
+	// Add the issuing country according to the hcert issuer field
+	// For the NL-issuer, determine the two-letter country code from the public key SAN
+	issCountryCode := hcert.Issuer
+	if issCountryCode == "NL" {
+		pkCountryCode, ok := CAS_SAN_TO_COUNTRY_CODE[pk.SubjectAltName]
+		if ok {
+			issCountryCode = pkCountryCode
+		}
+	}
+
 	return &VerificationDetails{
 		CredentialVersion: "1",
 		IsSpecimen:        isSpecimenStr,
-		BirthMonth:        birthMonth,
-		BirthDay:          birthDay,
-		FirstNameInitial:  firstNameInitial,
-		LastNameInitial:   familyNameInitial,
+		IssuerCountryCode: issCountryCode,
+
+		BirthMonth:       birthMonth,
+		BirthDay:         birthDay,
+		FirstNameInitial: firstNameInitial,
+		LastNameInitial:  familyNameInitial,
 	}, nil
 }
 

@@ -34,10 +34,12 @@ func verifyDomestic(proof []byte, rules *domesticVerificationRules, now time.Tim
 	verificationDetails = &VerificationDetails{
 		CredentialVersion: strconv.Itoa(verifiedCred.CredentialVersion),
 		IsSpecimen:        attributes["isSpecimen"],
-		FirstNameInitial:  attributes["firstNameInitial"],
-		LastNameInitial:   attributes["lastNameInitial"],
-		BirthDay:          attributes["birthDay"],
-		BirthMonth:        attributes["birthMonth"],
+		IssuerCountryCode: "NL",
+
+		FirstNameInitial: attributes["firstNameInitial"],
+		LastNameInitial:  attributes["lastNameInitial"],
+		BirthDay:         attributes["birthDay"],
+		BirthMonth:       attributes["birthMonth"],
 	}
 
 	return verificationDetails, nil

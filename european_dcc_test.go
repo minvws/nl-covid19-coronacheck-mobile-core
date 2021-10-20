@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	hcertcommon "github.com/minvws/nl-covid19-coronacheck-hcert/common"
+	"github.com/minvws/nl-covid19-coronacheck-hcert/verifier"
 	"reflect"
 	"strings"
 	"testing"
@@ -200,7 +201,7 @@ func TestDCCs(t *testing.T) {
 
 func TestHcertResult(t *testing.T) {
 	baseResult := VerificationDetails{
-		"1", "A", "B", "13", "03", "0",
+		"1", "0", "NL", "A", "B", "13", "03",
 	}
 
 	// Rest of the test cases
@@ -230,11 +231,15 @@ func TestHcertResult(t *testing.T) {
 		},
 	}
 
+	pk := &verifier.AnnotatedEuropeanPk{
+		SubjectAltName: "NLD",
+	}
+
 	for i, testCase := range testCases {
 		hcert := getHcert("V", testCase.hcertChanges)
 		expectedResult := getDetails(baseResult, testCase.resultChanges)
 
-		res, err := buildVerificationDetails(hcert, false)
+		res, err := buildVerificationDetails(hcert, pk, false)
 		if err != nil {
 			t.Fatal("Error when building result for test case", i)
 		}
