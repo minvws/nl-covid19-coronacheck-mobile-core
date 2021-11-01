@@ -121,7 +121,7 @@ func TestFlow(t *testing.T) {
 		}
 
 		// Disclose
-		r7 := Disclose(r3.Value, credJson)
+		r7 := Disclose(r3.Value, credJson, time.Now().Unix())
 		if r7.Error != "" {
 			t.Fatal("Could not disclose credential:", r6.Error)
 		}

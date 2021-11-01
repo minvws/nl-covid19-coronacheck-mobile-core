@@ -112,8 +112,8 @@ func ReadDomesticCredential(credJson []byte) *Result {
 	return &Result{attributesJson, ""}
 }
 
-func Disclose(holderSkJson, credJson []byte) *Result {
-	return disclose(holderSkJson, credJson, time.Now())
+func Disclose(holderSkJson, credJson []byte, unixTimeSeconds int64) *Result {
+	return disclose(holderSkJson, credJson, time.Unix(unixTimeSeconds, 0))
 }
 
 func disclose(holderSkJson, credJson []byte, now time.Time) *Result {
