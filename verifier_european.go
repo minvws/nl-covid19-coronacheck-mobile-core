@@ -208,7 +208,7 @@ func validateVaccination(vacc *hcertcommon.DCCVaccination, rules *europeanVerifi
 
 	nowDate := now.Truncate(24 * time.Hour).UTC()
 	vaccinationValidFrom := dov.Add(time.Duration(validityDelayDays*24) * time.Hour)
-	if nowDate.Before(vaccinationValidFrom) {
+	if nowDate.Before(vaccinationValidFrom) && (vacc.DoseNumber <= vacc.TotalSeriesOfDoses) {
 		return errors.Errorf("Date of vaccination is before the delayed validity date")
 	}
 
