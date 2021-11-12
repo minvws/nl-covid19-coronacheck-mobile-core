@@ -86,7 +86,15 @@ func runVerify(verifyFlags *flag.FlagSet, configPath *string) error {
 
 	verifyResult := mobilecore.Verify([]byte(qr))
 	if verifyResult.Error != "" {
-		return errors.Errorf("QR did not runVerify: %s\n", verifyResult.Error)
+		return errors.Errorf("QR did not verify: %s\n", verifyResult.Error)
+	}
+
+	if verifyResult.Status == mobilecore.VERIFICATION_FAILED_UNRECOGNIZED_PREFIX {
+		return errors.Errorf("Unrecognized QR prefix")
+	}
+
+	if verifyResult.Status == mobilecore.VERIFICATION_FAILED_IS_NL_DCC {
+		return errors.Errorf("Is NL DCC")
 	}
 
 	verificationDetailsJson, err := json.Marshal(verifyResult.Details)
@@ -124,7 +132,7 @@ func runProofIdentifier(pdFlags *flag.FlagSet, configPath *string) error {
 		}
 
 		proofIdentifier = verifiedCred.ProofIdentifier
-		fmt.Printf("Domestic proofidentifier: ")
+		fmt.Printf("NL:")
 	} else if hcertcommon.HasEUPrefix(qr) {
 		verifiedQR, err := europeanVerifier.VerifyQREncoded(qr)
 		if err != nil {
@@ -132,7 +140,7 @@ func runProofIdentifier(pdFlags *flag.FlagSet, configPath *string) error {
 		}
 
 		proofIdentifier = verifiedQR.ProofIdentifier
-		fmt.Printf("European proofidentifier: ")
+		fmt.Printf("EU:")
 	} else {
 		return errors.Errorf("QR doesn't have EU or NL prefix")
 	}
