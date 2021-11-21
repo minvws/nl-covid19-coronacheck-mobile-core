@@ -66,6 +66,7 @@ type europeanVerificationRules struct {
 	RecoveryValidUntilDays int `json:"recoveryValidUntilDays"`
 
 	IssuerCountryCodeFromCASIslandSAN map[string]string `json:"issuerCountryCodeFromCASIslandSAN"`
+	CorrectedIssuerCountryCodes       map[string]string `json:"correctedIssuerCountryCodes"`
 
 	ProofIdentifierDenylist map[string]bool `json:"proofIdentifierDenylist"`
 

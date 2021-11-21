@@ -336,6 +336,12 @@ func buildVerificationDetails(hcert *hcertcommon.HealthCertificate, pk *verifier
 		}
 	}
 
+	// Correct the issuer country code for some countries not adhering to the spec
+	correctedCountryCode, ok := rules.CorrectedIssuerCountryCodes[issCountryCode]
+	if ok {
+		issCountryCode = correctedCountryCode
+	}
+
 	return &VerificationDetails{
 		CredentialVersion: "1",
 		IsSpecimen:        isSpecimenStr,

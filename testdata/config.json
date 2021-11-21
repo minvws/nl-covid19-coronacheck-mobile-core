@@ -41,6 +41,9 @@
       "CUW": "CW",
       "SXM": "SX"
     },
+    "correctedIssuerCountryCodes": {
+      "CNAM": "FR"
+    },
     "proofIdentifierDenylist": {
       "7EXmXBhfyBZJgt1dki0cfQ==": true
     }
