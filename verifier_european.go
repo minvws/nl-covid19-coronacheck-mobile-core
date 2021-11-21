@@ -196,8 +196,7 @@ func validateVaccination(vacc *hcertcommon.DCCVaccination, rules *europeanVerifi
 	}
 
 	validityDelayDays := rules.VaccinationValidityDelayDays
-	if trimmedStringEquals(vacc.MedicinalProduct, VACCINE_MEDICINAL_PRODUCT_JANSSEN) &&
-		!dov.Before(rules.vaccinationJanssenValidityDelayIntoForceDate) {
+	if trimmedStringEquals(vacc.MedicinalProduct, VACCINE_MEDICINAL_PRODUCT_JANSSEN) {
 		validityDelayDays = rules.VaccinationJanssenValidityDelayDays
 	}
 

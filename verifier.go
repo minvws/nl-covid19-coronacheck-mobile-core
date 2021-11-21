@@ -69,8 +69,6 @@ type europeanVerificationRules struct {
 	CorrectedIssuerCountryCodes       map[string]string `json:"correctedIssuerCountryCodes"`
 
 	ProofIdentifierDenylist map[string]bool `json:"proofIdentifierDenylist"`
-
-	vaccinationJanssenValidityDelayIntoForceDate time.Time
 }
 
 var (
@@ -102,12 +100,6 @@ func InitializeVerifier(configDirectoryPath string) *Result {
 	if verifierConfig.EuropeanVerificationRules == nil {
 		return ErrorResult(errors.Errorf("The European verification rules were not present"))
 	}
-
-	// Parse date once (and leave at default value if parsing goes awry)
-	verifierConfig.EuropeanVerificationRules.vaccinationJanssenValidityDelayIntoForceDate, _ = time.Parse(
-		YYYYMMDD_FORMAT,
-		verifierConfig.EuropeanVerificationRules.VaccinationJanssenValidityIntoForceDateStr,
-	)
 
 	// Read public keys
 	publicKeysConfig, err := NewPublicKeysConfig(pksPath, true)

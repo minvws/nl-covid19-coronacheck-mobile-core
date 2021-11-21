@@ -40,6 +40,7 @@ func TestHCerts(t *testing.T) {
 
 func TestDCCs(t *testing.T) {
 	validVaccTime := "2021-07-01"
+	validVaccJanssenTime := "2021-07-06"
 	validRecTime := "2021-08-15"
 	validTestTime := "2021-07-23T08:00:00Z"
 
@@ -90,7 +91,7 @@ func TestDCCs(t *testing.T) {
 		{"V", rules, vaccChange("EU/1/20/1528", "MedicinalProduct"), validVaccTime, true},
 		{"V", rules, vaccChange("EU/1/20/1507", "MedicinalProduct"), validVaccTime, true},
 		{"V", rules, vaccChange("EU/1/21/1529", "MedicinalProduct"), validVaccTime, true},
-		{"V", rules, vaccChange("EU/1/20/1525", "MedicinalProduct"), validVaccTime, true},
+		{"V", rules, vaccChange("EU/1/20/1525", "MedicinalProduct"), validVaccJanssenTime, true},
 		{"V", rules, vaccChange("Sputnik-V", "MedicinalProduct"), validVaccTime, false},
 
 		// Doses
@@ -109,12 +110,9 @@ func TestDCCs(t *testing.T) {
 		{"V", rules, vaccChange("", "DateOfVaccination"), validVaccTime, false},
 
 		// Janssen handling
-		{"V", rules, vaccJanssen("2021-08-13"), "2021-08-26", false},
-		{"V", rules, vaccJanssen("2021-08-13"), "2021-08-27", true},
-		{"V", rules, vaccJanssen("2021-08-14"), "2021-09-10", false},
-		{"V", rules, vaccJanssen("2021-08-14"), "2021-09-11", true},
-		{"V", rules, vaccJanssen("2021-08-15"), "2021-09-11", false},
-		{"V", rules, vaccJanssen("2021-08-15"), "2021-09-12", true},
+		{"V", rules, vaccSingleJanssen(), "2021-06-22", false},
+		{"V", rules, vaccSingleJanssen(), "2021-07-05", false},
+		{"V", rules, vaccSingleJanssen(), "2021-07-06", true},
 
 		// Recovery
 		//
@@ -193,7 +191,7 @@ func TestDCCs(t *testing.T) {
 			if err != nil {
 				errStr = fmt.Sprintf("(%s)", err.Error())
 			}
-
+			
 			t.Fatalf("Got wrong isValid %t for test case %d %s", isValid, i, errStr)
 		}
 	}
@@ -311,10 +309,10 @@ func vaccDoseChange(dn, sd int) []structChange {
 	)
 }
 
-func vaccJanssen(vaccinationDate string) []structChange {
+func vaccSingleJanssen() []structChange {
 	return append(
 		vaccChange("EU/1/20/1525", "MedicinalProduct"),
-		vaccChange(vaccinationDate, "DateOfVaccination")...,
+		vaccDoseChange(1, 1)...
 	)
 }
 
