@@ -198,6 +198,13 @@ func validateVaccination(vacc *hcertcommon.DCCVaccination, rules *europeanVerifi
 	validityDelayDays := rules.VaccinationValidityDelayDays
 	if trimmedStringEquals(vacc.MedicinalProduct, VACCINE_MEDICINAL_PRODUCT_JANSSEN) {
 		validityDelayDays = rules.VaccinationJanssenValidityDelayDays
+		if vacc.DoseNumber > 1 {
+			validityDelayDays = 0
+		}
+	} else {
+		if vacc.DoseNumber > 2 {
+			validityDelayDays = 0
+		}
 	}
 
 	nowDate := now.Truncate(24 * time.Hour).UTC()

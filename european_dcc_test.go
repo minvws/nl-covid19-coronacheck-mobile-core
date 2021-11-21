@@ -75,7 +75,7 @@ func TestDCCs(t *testing.T) {
 
 		// Vaccination
 		//
-		// Vaccination time
+		// Vaccination and waiting time
 		{"V", rules, nil, "2021-06-07", false},
 		{"V", rules, nil, "2021-06-08", false},
 		{"V", rules, nil, "2021-06-09", false},
@@ -83,6 +83,25 @@ func TestDCCs(t *testing.T) {
 		{"V", rules, nil, "2021-06-22", true},
 		{"V", rules, nil, validVaccTime, true},
 		{"V", rules, nil, "2023-01-01", true},
+
+		// Waiting time on additional doses
+		{"V", rules, vaccDoseChange(3, 3), "2021-06-07", false},
+		{"V", rules, vaccDoseChange(3, 3), "2021-06-08", true},
+		{"V", rules, vaccDoseChange(3, 3), "2021-06-20", true},
+		{"V", rules, vaccDoseChange(3, 3), "2022-12-15", true},
+
+		{"V", rules, vaccDoseChange(4, 4), "2021-06-08", true},
+		{"V", rules, vaccDoseChange(42, 42), "2021-06-08", true},
+		{"V", rules, vaccDoseChange(3, 2), "2021-06-08", true},
+
+		{"V", rules, vaccJanssenDose(2, 2), "2021-06-07", false},
+		{"V", rules, vaccJanssenDose(2, 2), "2021-06-08", true},
+		{"V", rules, vaccJanssenDose(2, 2), "2021-06-20", true},
+		{"V", rules, vaccJanssenDose(2, 2), "2022-12-15", true},
+
+		{"V", rules, vaccJanssenDose(4, 4), "2021-06-08", true},
+		{"V", rules, vaccJanssenDose(42, 42), "2021-06-08", true},
+		{"V", rules, vaccJanssenDose(3, 2), "2021-06-08", true},
 
 		// Disease targeted
 		{"V", rules, vaccChange("840539007", "DiseaseTargeted"), validVaccTime, false},
@@ -98,6 +117,8 @@ func TestDCCs(t *testing.T) {
 		{"V", rules, vaccDoseChange(0, 0), validVaccTime, true},
 		{"V", rules, vaccDoseChange(1, 1), validVaccTime, true},
 		{"V", rules, vaccDoseChange(2, 2), validVaccTime, true},
+		{"V", rules, vaccDoseChange(3, 2), validVaccTime, true},
+		{"V", rules, vaccDoseChange(3, 3), validVaccTime, true},
 		{"V", rules, vaccDoseChange(4, 2), validVaccTime, true},
 		{"V", rules, vaccDoseChange(0, 1), validVaccTime, false},
 		{"V", rules, vaccDoseChange(1, 2), validVaccTime, false},
@@ -191,7 +212,7 @@ func TestDCCs(t *testing.T) {
 			if err != nil {
 				errStr = fmt.Sprintf("(%s)", err.Error())
 			}
-			
+
 			t.Fatalf("Got wrong isValid %t for test case %d %s", isValid, i, errStr)
 		}
 	}
@@ -313,6 +334,13 @@ func vaccSingleJanssen() []structChange {
 	return append(
 		vaccChange("EU/1/20/1525", "MedicinalProduct"),
 		vaccDoseChange(1, 1)...
+	)
+}
+
+func vaccJanssenDose(dn, sd int) []structChange {
+	return append(
+		vaccChange("EU/1/20/1525", "MedicinalProduct"),
+		vaccDoseChange(dn, sd)...,
 	)
 }
 
