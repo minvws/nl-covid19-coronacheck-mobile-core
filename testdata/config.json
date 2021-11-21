@@ -36,6 +36,11 @@
     ],
     "recoveryValidFromDays": 11,
     "recoveryValidUntilDays": 180,
+    "issuerCountryCodeFromCASIslandSAN": {
+      "ABW": "AW",
+      "CUW": "CW",
+      "SXM": "SX"
+    },
     "proofIdentifierDenylist": {
       "7EXmXBhfyBZJgt1dki0cfQ==": true
     }

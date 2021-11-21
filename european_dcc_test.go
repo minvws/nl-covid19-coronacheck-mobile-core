@@ -200,6 +200,8 @@ func TestDCCs(t *testing.T) {
 }
 
 func TestHcertResult(t *testing.T) {
+	rules := &europeanVerificationRules{}
+
 	baseResult := VerificationDetails{
 		"1", "0", "NL", "A", "B", "13", "03",
 	}
@@ -239,7 +241,7 @@ func TestHcertResult(t *testing.T) {
 		hcert := getHcert("V", testCase.hcertChanges)
 		expectedResult := getDetails(baseResult, testCase.resultChanges)
 
-		res, err := buildVerificationDetails(hcert, pk, false)
+		res, err := buildVerificationDetails(hcert, pk, rules, false)
 		if err != nil {
 			t.Fatal("Error when building result for test case", i)
 		}

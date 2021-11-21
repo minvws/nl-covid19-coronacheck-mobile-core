@@ -21,11 +21,6 @@ const (
 
 var (
 	DATE_OF_BIRTH_REGEX     = regexp.MustCompile(`^(?:((?:19|20)\d\d)(?:-(\d\d)(?:-(\d\d))?)?)?$`)
-	CAS_SAN_TO_COUNTRY_CODE = map[string]string{
-		"ABW": "AW",
-		"CUW": "CW",
-		"SXM": "SX",
-	}
 )
 
 func verifyEuropean(proofQREncoded []byte, rules *europeanVerificationRules, now time.Time) (details *VerificationDetails, isNLDCC bool, err error) {
@@ -64,7 +59,7 @@ func verifyEuropean(proofQREncoded []byte, rules *europeanVerificationRules, now
 	}
 
 	// Build the resulting details
-	result, err := buildVerificationDetails(hcert, pk, isSpecimen)
+	result, err := buildVerificationDetails(hcert, pk, rules, isSpecimen)
 	if err != nil {
 		return nil, false, err
 	}
@@ -299,7 +294,7 @@ func validateRecovery(rec *hcertcommon.DCCRecovery, rules *europeanVerificationR
 	return nil
 }
 
-func buildVerificationDetails(hcert *hcertcommon.HealthCertificate, pk *verifier.AnnotatedEuropeanPk, isSpecimen bool) (*VerificationDetails, error) {
+func buildVerificationDetails(hcert *hcertcommon.HealthCertificate, pk *verifier.AnnotatedEuropeanPk, rules *europeanVerificationRules, isSpecimen bool) (*VerificationDetails, error) {
 	// Determine specimen
 	isSpecimenStr := "0"
 	if isSpecimen {
@@ -335,7 +330,7 @@ func buildVerificationDetails(hcert *hcertcommon.HealthCertificate, pk *verifier
 	// For the NL-issuer, determine the two-letter country code from the public key SAN
 	issCountryCode := hcert.Issuer
 	if issCountryCode == "NL" {
-		pkCountryCode, ok := CAS_SAN_TO_COUNTRY_CODE[pk.SubjectAltName]
+		pkCountryCode, ok := rules.IssuerCountryCodeFromCASIslandSAN[pk.SubjectAltName]
 		if ok {
 			issCountryCode = pkCountryCode
 		}

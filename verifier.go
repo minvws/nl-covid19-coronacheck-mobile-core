@@ -65,6 +65,8 @@ type europeanVerificationRules struct {
 	RecoveryValidFromDays  int `json:"recoveryValidFromDays"`
 	RecoveryValidUntilDays int `json:"recoveryValidUntilDays"`
 
+	IssuerCountryCodeFromCASIslandSAN map[string]string `json:"issuerCountryCodeFromCASIslandSAN"`
+
 	ProofIdentifierDenylist map[string]bool `json:"proofIdentifierDenylist"`
 
 	vaccinationJanssenValidityDelayIntoForceDate time.Time
