@@ -27,6 +27,7 @@ func TestInitialization(t *testing.T) {
 
 func TestFlow(t *testing.T) {
 	credentialAmount := 3
+	clockSkewSeconds := int64(120)
 	credentialAttributes := buildCredentialsAttributes(credentialAmount)
 
 	// Generate holdercore secret key
@@ -138,8 +139,25 @@ func TestFlow(t *testing.T) {
 			}
 		}
 
-		if i > 2 && (r8.Status != VERIFICATION_FAILED_ERROR || r8.Error == "") {
+		if i > 1 && (r8.Status != VERIFICATION_FAILED_ERROR || r8.Error == "") {
 			t.Fatal("Credential should not validate due to validFrom in future")
+		}
+
+		// Disclose again with clock skew
+		r9 := DiscloseWithTime(r3.Value, credJson, time.Now().Unix() + clockSkewSeconds)
+		if r9.Error != "" {
+			t.Fatal("Could not disclose credential with time: ", r9.Error)
+		}
+
+		// Verify clock skewed credential with current time which should fail
+		r10 := Verify(r9.Value)
+		if r10.Error == "" {
+			t.Fatal("Clocked skewed credential should not verify")
+		}
+
+		r11 := VerifyWithTime(r9.Value, time.Now().Unix() + clockSkewSeconds)
+		if i < 2 && r11.Error != "" {
+			t.Fatal("Clock skewed credential with manual time setting should verify:", r11.Error)
 		}
 	}
 }

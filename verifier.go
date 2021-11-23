@@ -123,6 +123,10 @@ func Verify(proofQREncoded []byte) *VerificationResult {
 	return verify(proofQREncoded, time.Now())
 }
 
+func VerifyWithTime(proofQREncoded []byte, unixTimeSeconds int64) *VerificationResult {
+	return verify(proofQREncoded, time.Unix(unixTimeSeconds, 0))
+}
+
 func verify(proofQREncoded []byte, now time.Time) *VerificationResult {
 	if idemixverifier.HasNLPrefix(proofQREncoded) {
 		return handleDomesticVerification(proofQREncoded, now)

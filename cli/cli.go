@@ -10,6 +10,7 @@ import (
 	idemixverifier "github.com/minvws/nl-covid19-coronacheck-idemix/verifier"
 	mobilecore "github.com/minvws/nl-covid19-coronacheck-mobile-core"
 	"os"
+	"time"
 )
 
 func main() {
@@ -18,6 +19,7 @@ func main() {
 	// Subcommands
 	verifyCmd := flag.NewFlagSet("verify", flag.ExitOnError)
 	verifyConfigPath := verifyCmd.String("configdir", "./testdata", "Config directory to use")
+	verifyTimestamp := verifyCmd.Int64("timestamp", time.Now().Unix(), "Timestamp of verification to use")
 
 	proofIdentifierCmd := flag.NewFlagSet("proofidentifier", flag.ExitOnError)
 	proofIdentifierConfigPath := proofIdentifierCmd.String("configdir", "./testdata", "Config directory to use")
@@ -45,7 +47,7 @@ func main() {
 	}
 
 	if verifyCmd.Parsed() {
-		err := runVerify(verifyCmd, verifyConfigPath)
+		err := runVerify(verifyCmd, verifyConfigPath, verifyTimestamp)
 		if err != nil {
 			_, _ = fmt.Fprintln(os.Stderr, err.Error())
 			os.Exit(1)
@@ -69,7 +71,7 @@ func main() {
 	}
 }
 
-func runVerify(verifyFlags *flag.FlagSet, configPath *string) error {
+func runVerify(verifyFlags *flag.FlagSet, configPath *string, timestamp *int64) error {
 	qr := verifyFlags.Arg(0)
 	if len(qr) == 0 {
 		return errors.Errorf("No QR was given")
@@ -84,7 +86,7 @@ func runVerify(verifyFlags *flag.FlagSet, configPath *string) error {
 		return errors.Errorf("Could not initialize verifier: %s\n", initializeResult.Error)
 	}
 
-	verifyResult := mobilecore.Verify([]byte(qr))
+	verifyResult := mobilecore.VerifyWithTime([]byte(qr), *timestamp)
 	if verifyResult.Error != "" {
 		return errors.Errorf("QR did not verify: %s\n", verifyResult.Error)
 	}

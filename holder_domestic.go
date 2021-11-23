@@ -116,6 +116,10 @@ func Disclose(holderSkJson, credJson []byte) *Result {
 	return disclose(holderSkJson, credJson, time.Now())
 }
 
+func DiscloseWithTime(holderSkJson, credJson []byte, unixTimeSeconds int64) *Result {
+	return disclose(holderSkJson, credJson, time.Unix(unixTimeSeconds, 0))
+}
+
 func disclose(holderSkJson, credJson []byte, now time.Time) *Result {
 	holderSk, err := unmarshalHolderSk(holderSkJson)
 	if err != nil {
