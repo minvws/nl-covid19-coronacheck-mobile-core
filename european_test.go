@@ -20,7 +20,7 @@ func TestExampleQRs(t *testing.T) {
 			t.Fatal("Could not initialize verifier", r2.Error)
 		}
 
-		r3 := verify(testcase.qr, now)
+		r3 := verify(testcase.qr, VERIFICATION_POLICY_3G, now)
 		didError := r3.Error != ""
 		expectError := testcase.expectedStatus == VERIFICATION_FAILED_ERROR
 		if didError != expectError {

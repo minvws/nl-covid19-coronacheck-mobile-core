@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func verifyDomestic(proof []byte, rules *domesticVerificationRules, now time.Time) (verificationDetails *VerificationDetails, err error) {
+func verifyDomestic(proof []byte, policy string, rules *domesticVerificationRules, now time.Time) (verificationDetails *VerificationDetails, err error) {
 	verifiedCred, err := domesticVerifier.VerifyQREncoded(proof)
 	if err != nil {
 		return nil, err
@@ -26,6 +26,11 @@ func verifyDomestic(proof []byte, rules *domesticVerificationRules, now time.Tim
 
 	isPaperProof := attributes["isPaperProof"]
 	err = checkFreshness(verifiedCred.DisclosureTimeSeconds, isPaperProof, rules, now)
+	if err != nil {
+		return nil, err
+	}
+
+	err = checkPolicy(policy, verifiedCred.CredentialVersion, verifiedCred.Attributes)
 	if err != nil {
 		return nil, err
 	}
@@ -83,4 +88,26 @@ func checkFreshness(generatedAtTimestamp int64, isPaperProofStr string, rules *d
 	}
 
 	return nil
+}
+
+func checkPolicy(policy string, credentialVersion int, attributes map[string]string) error {
+	// Credential version 2 doesn't contain any category, and is assumed to be valid for 2G
+	if credentialVersion == 2 {
+		return nil
+	}
+
+	// Any other credential version contains a category attribute with a category
+	// The 3G policy allows any category
+	if policy == VERIFICATION_POLICY_3G {
+		return nil
+	}
+
+	// Otherwise, the credential must contain the 2G category attribute
+	// TODO: During the migration period of 28 days after forced update, an empty category attribute
+	//   is also allowed. This should be removed after the migration is complete
+	if attributes["category"] == VERIFICATION_POLICY_2G || attributes["category"] == "" {
+		return nil
+	}
+
+	return errors.Errorf("The credential did not contain the required 2G category")
 }

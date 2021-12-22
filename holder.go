@@ -12,6 +12,7 @@ import (
 const (
 	HOLDER_CONFIG_FILENAME      = "config.json"
 	HOLDER_PUBLIC_KEYS_FILENAME = "public_keys.json"
+	CREATE_CREDENTIAL_VERSION   = 3
 )
 
 var (
@@ -49,7 +50,7 @@ func InitializeHolder(configDirectoryPath string) *Result {
 	}
 
 	// Initialize holders
-	domesticHolder = idemixholder.New(publicKeysConfig.FindAndCacheDomestic)
+	domesticHolder = idemixholder.New(publicKeysConfig.FindAndCacheDomestic, CREATE_CREDENTIAL_VERSION)
 	europeanHolder = hcertholder.New()
 
 	return &Result{nil, ""}
@@ -77,7 +78,7 @@ func LoadDomesticIssuerPks(annotatedPksJson []byte) *Result {
 	publicKeysConfig.TransformLegacyDomesticPks()
 
 	// Initialize holders
-	domesticHolder = idemixholder.New(publicKeysConfig.FindAndCacheDomestic)
+	domesticHolder = idemixholder.New(publicKeysConfig.FindAndCacheDomestic, CREATE_CREDENTIAL_VERSION)
 	europeanHolder = hcertholder.New()
 
 	// Set loaded status

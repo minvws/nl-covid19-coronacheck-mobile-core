@@ -20,10 +20,10 @@ const (
 )
 
 var (
-	DATE_OF_BIRTH_REGEX     = regexp.MustCompile(`^(?:((?:19|20)\d\d)(?:-(\d\d)(?:-(\d\d))?)?)?$`)
+	DATE_OF_BIRTH_REGEX = regexp.MustCompile(`^(?:((?:19|20)\d\d)(?:-(\d\d)(?:-(\d\d))?)?)?$`)
 )
 
-func verifyEuropean(proofQREncoded []byte, rules *europeanVerificationRules, now time.Time) (details *VerificationDetails, isNLDCC bool, err error) {
+func verifyEuropean(proofQREncoded []byte, policy string, rules *europeanVerificationRules, now time.Time) (details *VerificationDetails, isNLDCC bool, err error) {
 	// Validate signature and get health certificate
 	verified, err := europeanVerifier.VerifyQREncoded(proofQREncoded)
 	if err != nil {
@@ -53,7 +53,7 @@ func verifyEuropean(proofQREncoded []byte, rules *europeanVerificationRules, now
 	}
 
 	// Validate DCC
-	err = validateDCC(hcert.DCC, rules, now)
+	err = validateDCC(hcert.DCC, policy, rules, now)
 	if err != nil {
 		return nil, false, errors.WrapPrefix(err, "Could not validate DCC", 0)
 	}
@@ -92,7 +92,7 @@ func validateHcert(hcert *hcertcommon.HealthCertificate, now time.Time) (isSpeci
 	return false, nil
 }
 
-func validateDCC(dcc *hcertcommon.DCC, rules *europeanVerificationRules, now time.Time) (err error) {
+func validateDCC(dcc *hcertcommon.DCC, policy string, rules *europeanVerificationRules, now time.Time) (err error) {
 	// Validate date of birth
 	err = validateDateOfBirth(dcc.DateOfBirth)
 	if err != nil {
@@ -120,7 +120,7 @@ func validateDCC(dcc *hcertcommon.DCC, rules *europeanVerificationRules, now tim
 	}
 
 	for _, test := range dcc.Tests {
-		err = validateTest(test, rules, now)
+		err = validateTest(test, policy, rules, now)
 		if err != nil {
 			return errors.WrapPrefix(err, "Invalid test statement", 0)
 		}
@@ -216,7 +216,12 @@ func validateVaccination(vacc *hcertcommon.DCCVaccination, rules *europeanVerifi
 	return nil
 }
 
-func validateTest(test *hcertcommon.DCCTest, rules *europeanVerificationRules, now time.Time) error {
+func validateTest(test *hcertcommon.DCCTest, policy string, rules *europeanVerificationRules, now time.Time) error {
+	// 2G policy
+	if policy == VERIFICATION_POLICY_2G {
+		return errors.Errorf("A negative test is not valid for the chosen 2G policy")
+	}
+
 	// Disease agent
 	if !trimmedStringEquals(test.DiseaseTargeted, DISEASE_TARGETED_COVID_19) {
 		return errors.Errorf("Disease targeted should be COVID-19")

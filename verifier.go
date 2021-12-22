@@ -24,6 +24,11 @@ const (
 	VERIFICATION_FAILED_ERROR
 )
 
+const (
+	VERIFICATION_POLICY_2G string = "2"
+	VERIFICATION_POLICY_3G string = "3"
+)
+
 type VerificationResult struct {
 	Status  int
 	Details *VerificationDetails
@@ -114,24 +119,25 @@ func InitializeVerifier(configDirectoryPath string) *Result {
 	return &Result{nil, ""}
 }
 
-func Verify(proofQREncoded []byte) *VerificationResult {
-	return verify(proofQREncoded, time.Now())
+func Verify(proofQREncoded []byte, verificationPolicy string) *VerificationResult {
+	return verify(proofQREncoded, verificationPolicy, time.Now())
 }
 
-func VerifyWithTime(proofQREncoded []byte, unixTimeSeconds int64) *VerificationResult {
-	return verify(proofQREncoded, time.Unix(unixTimeSeconds, 0))
+func VerifyWithTime(proofQREncoded []byte, verificationPolicy string, unixTimeSeconds int64) *VerificationResult {
+	return verify(proofQREncoded, verificationPolicy, time.Unix(unixTimeSeconds, 0))
 }
 
-func verify(proofQREncoded []byte, now time.Time) *VerificationResult {
+func verify(proofQREncoded []byte, policy string, now time.Time) *VerificationResult {
 	if idemixverifier.HasNLPrefix(proofQREncoded) {
-		return handleDomesticVerification(proofQREncoded, now)
+		return handleDomesticVerification(proofQREncoded, policy, now)
 	} else {
-		return handleEuropeanVerification(proofQREncoded, now)
+		return handleEuropeanVerification(proofQREncoded, policy, now)
 	}
 }
 
-func handleDomesticVerification(proofQREncoded []byte, now time.Time) *VerificationResult {
-	verificationDetails, err := verifyDomestic(proofQREncoded, verifierConfig.DomesticVerificationRules, now)
+func handleDomesticVerification(proofQREncoded []byte, policy string, now time.Time) *VerificationResult {
+	rules := verifierConfig.DomesticVerificationRules
+	verificationDetails, err := verifyDomestic(proofQREncoded, policy, rules, now)
 	if err != nil {
 		return &VerificationResult{
 			Status: VERIFICATION_FAILED_ERROR,
@@ -145,14 +151,15 @@ func handleDomesticVerification(proofQREncoded []byte, now time.Time) *Verificat
 	}
 }
 
-func handleEuropeanVerification(proofQREncoded []byte, now time.Time) *VerificationResult {
+func handleEuropeanVerification(proofQREncoded []byte, policy string, now time.Time) *VerificationResult {
 	// As some QR-codes by T-Systems apps miss the required prefix, add the prefix here if it isn't present
 	wasEUPrefixed := hcertcommon.HasEUPrefix(proofQREncoded)
 	if !wasEUPrefixed {
 		proofQREncoded = append([]byte{'H', 'C', '1', ':'}, proofQREncoded...)
 	}
 
-	verificationDetails, isNLDCC, err := verifyEuropean(proofQREncoded, verifierConfig.EuropeanVerificationRules, now)
+	rules := verifierConfig.EuropeanVerificationRules
+	verificationDetails, isNLDCC, err := verifyEuropean(proofQREncoded, policy, rules, now)
 	if err != nil {
 		// If the QR-code wasn't prefixed and it didn't verify, assume that it wasn't a EU QR code
 		if !wasEUPrefixed {

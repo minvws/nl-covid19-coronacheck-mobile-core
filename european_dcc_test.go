@@ -205,7 +205,7 @@ func TestDCCs(t *testing.T) {
 		}
 
 		hcert := getHcert(testCase.statements, testCase.changes)
-		err = validateDCC(hcert.DCC, testCase.rules, now)
+		err = validateDCC(hcert.DCC, VERIFICATION_POLICY_3G, testCase.rules, now)
 		isValid := err == nil
 		if isValid != testCase.isValid {
 			errStr := ""
@@ -333,7 +333,7 @@ func vaccDoseChange(dn, sd int) []structChange {
 func vaccSingleJanssen() []structChange {
 	return append(
 		vaccChange("EU/1/20/1525", "MedicinalProduct"),
-		vaccDoseChange(1, 1)...
+		vaccDoseChange(1, 1)...,
 	)
 }
 

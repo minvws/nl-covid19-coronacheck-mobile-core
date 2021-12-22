@@ -131,7 +131,7 @@ func disclose(holderSkJson, credJson []byte, now time.Time) *Result {
 		return ErrorResult(err)
 	}
 
-	proofPrefixed, err := domesticHolder.DiscloseAllWithTimeQREncoded(holderSk, cred, now)
+	proofPrefixed, _, err := domesticHolder.DiscloseAllWithTimeQREncoded(holderSk, cred, now)
 	if err != nil {
 		return WrappedErrorResult(err, "Could not disclosure credential")
 	}
@@ -160,7 +160,7 @@ func unmarshalCredential(credJson []byte) (*gabi.Credential, error) {
 }
 
 func readCredentialWithVersion(cred *gabi.Credential) (map[string]string, error) {
-	attributes, credVersion, err := holder.ReadCredential(cred)
+	attributes, credVersion, err := domesticHolder.ReadCredential(cred)
 	if err != nil {
 		return nil, errors.WrapPrefix(err, "Could not read credential", 0)
 	}

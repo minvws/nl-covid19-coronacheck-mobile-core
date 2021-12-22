@@ -86,7 +86,7 @@ func runVerify(verifyFlags *flag.FlagSet, configPath *string, timestamp *int64) 
 		return errors.Errorf("Could not initialize verifier: %s\n", initializeResult.Error)
 	}
 
-	verifyResult := mobilecore.VerifyWithTime([]byte(qr), *timestamp)
+	verifyResult := mobilecore.VerifyWithTime([]byte(qr), mobilecore.VERIFICATION_POLICY_3G, *timestamp)
 	if verifyResult.Error != "" {
 		return errors.Errorf("QR did not verify: %s\n", verifyResult.Error)
 	}
