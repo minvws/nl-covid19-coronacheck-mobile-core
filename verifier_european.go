@@ -208,16 +208,21 @@ func validateVaccination(vacc *hcertcommon.DCCVaccination, rules *europeanVerifi
 		}
 	}
 
-	// Cancel waiting days if it's explicitly denoted as a booster
+	// Check if the dosenumber and the total amount of doses explicitly denote a booster
 	if vacc.DoseNumber > vacc.TotalSeriesOfDoses {
 		validityDelayDays = 0
 	}
 
-	// Apply waiting days and check if the vaccination is valid
-	nowDate := now.Truncate(24 * time.Hour).UTC()
-	vaccinationValidFrom := dov.Add(time.Duration(validityDelayDays*24) * time.Hour)
-	if nowDate.Before(vaccinationValidFrom) {
+	// Apply waiting days and check if the vaccination validity period has started
+	validFrom := dov.Add(time.Duration(validityDelayDays*24) * time.Hour)
+	if now.Before(validFrom) {
 		return errors.Errorf("Date of vaccination is before the delayed validity date")
+	}
+
+	// From the into force date, check if the vaccination validity has not yet ended
+	validUntil := dov.Add(time.Duration(rules.VaccinationValidityDays*24) * time.Hour)
+	if rules.vaccinationValidityIntoForceDate.Before(now) && validUntil.Before(now) {
+		return errors.Errorf("Date of vaccination is beyond the primary cycle validity period")
 	}
 
 	return nil

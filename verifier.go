@@ -65,6 +65,8 @@ type europeanVerificationRules struct {
 	VaccinationValidityDelayDays               int      `json:"vaccinationValidityDelayDays"`
 	VaccinationJanssenValidityDelayDays        int      `json:"vaccinationJanssenValidityDelayDays"`
 	VaccinationJanssenValidityIntoForceDateStr string   `json:"vaccinationJanssenValidityDelayIntoForceDate"`
+	VaccinationValidityDays                    int      `json:"vaccinationValidityDays"`
+	VaccinationValidityIntoForceDateStr        string   `json:"vaccinationValidityIntoForceDate"`
 	VaccineAllowedProducts                     []string `json:"vaccineAllowedProducts"`
 
 	RecoveryValidFromDays  int `json:"recoveryValidFromDays"`
@@ -74,6 +76,8 @@ type europeanVerificationRules struct {
 	CorrectedIssuerCountryCodes       map[string]string `json:"correctedIssuerCountryCodes"`
 
 	ProofIdentifierDenylist map[string]bool `json:"proofIdentifierDenylist"`
+
+	vaccinationValidityIntoForceDate time.Time
 }
 
 var (
@@ -105,6 +109,12 @@ func InitializeVerifier(configDirectoryPath string) *Result {
 	if verifierConfig.EuropeanVerificationRules == nil {
 		return ErrorResult(errors.Errorf("The European verification rules were not present"))
 	}
+
+	// Parse date once (and leave at default value if parsing goes awry)
+	verifierConfig.EuropeanVerificationRules.vaccinationValidityIntoForceDate, _ = time.Parse(
+		YYYYMMDD_FORMAT,
+		verifierConfig.EuropeanVerificationRules.VaccinationValidityIntoForceDateStr,
+	)
 
 	// Read public keys
 	publicKeysConfig, err := NewPublicKeysConfig(pksPath, true)

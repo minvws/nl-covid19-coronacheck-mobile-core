@@ -75,20 +75,21 @@ func TestDCCs(t *testing.T) {
 
 		// Vaccination
 		//
-		// Vaccination and waiting time
+		// Vaccination, waiting time and valid until
 		{"V", rules, nil, "2021-06-07", false},
 		{"V", rules, nil, "2021-06-08", false},
 		{"V", rules, nil, "2021-06-09", false},
 		{"V", rules, nil, "2021-06-21", false},
 		{"V", rules, nil, "2021-06-22", true},
 		{"V", rules, nil, validVaccTime, true},
-		{"V", rules, nil, "2023-01-01", true},
+		{"V", rules, nil, "2022-03-04", true},
+		{"V", rules, nil, "2022-03-05", false},
+		{"V", rules, nil, "2023-01-01", false},
 
 		// Waiting time on additional doses
 		{"V", rules, vaccDoseChange(3, 3), "2021-06-07", false},
 		{"V", rules, vaccDoseChange(3, 3), "2021-06-08", true},
 		{"V", rules, vaccDoseChange(3, 3), "2021-06-20", true},
-		{"V", rules, vaccDoseChange(3, 3), "2022-12-15", true},
 
 		{"V", rules, vaccDoseChange(4, 4), "2021-06-08", true},
 		{"V", rules, vaccDoseChange(42, 42), "2021-06-08", true},
@@ -98,12 +99,24 @@ func TestDCCs(t *testing.T) {
 		{"V", rules, vaccJanssenDose(2, 2), "2021-06-07", false},
 		{"V", rules, vaccJanssenDose(2, 2), "2021-06-08", true},
 		{"V", rules, vaccJanssenDose(2, 2), "2021-06-20", true},
-		{"V", rules, vaccJanssenDose(2, 2), "2022-12-15", true},
 
 		{"V", rules, vaccJanssenDose(4, 4), "2021-06-08", true},
 		{"V", rules, vaccJanssenDose(42, 42), "2021-06-08", true},
 		{"V", rules, vaccJanssenDose(3, 2), "2021-06-08", true},
 		{"V", rules, vaccJanssenDose(2, 1), "2021-06-08", true},
+
+		// Valid until on additional doses
+		{"V", rules, vaccJanssenDose(2, 2), "2022-03-04", true},
+		{"V", rules, vaccJanssenDose(2, 2), "2022-03-05", false},
+
+		{"V", rules, vaccJanssenDose(2, 1), "2022-03-04", true},
+		{"V", rules, vaccJanssenDose(2, 1), "2022-03-05", false},
+
+		{"V", rules, vaccDoseChange(3, 3), "2022-03-04", true},
+		{"V", rules, vaccDoseChange(3, 3), "2022-03-05", false},
+
+		{"V", rules, vaccDoseChange(3, 2), "2022-03-04", true},
+		{"V", rules, vaccDoseChange(3, 2), "2022-03-05", false},
 
 		// Disease targeted
 		{"V", rules, vaccChange("840539007", "DiseaseTargeted"), validVaccTime, false},
@@ -142,8 +155,9 @@ func TestDCCs(t *testing.T) {
 		{"R", rules, nil, "2021-07-11", false},
 		{"R", rules, nil, "2021-07-12", true},
 		{"R", rules, nil, validRecTime, true},
-		{"R", rules, nil, "2021-09-12", true},
-		{"R", rules, nil, "2021-09-13", false},
+		{"R", rules, nil, "2021-09-11", true},
+		{"R", rules, nil, "2021-09-12", false},
+		{"R", rules, nil, "2022-01-01", false},
 
 		// Disease targeted
 		{"R", rules, recChange("840539007", "DiseaseTargeted"), validRecTime, false},
@@ -158,8 +172,8 @@ func TestDCCs(t *testing.T) {
 		{"R", rules, recChange("2021-07-01", "CertificateValidFrom"), "2021-07-12", true},
 
 		{"R", rules, recChange("2021-07-01", "CertificateValidUntil"), "2021-07-12", false},
-		{"R", rules, recChange("2022-01-01", "CertificateValidUntil"), "2021-12-28", true},
-		{"R", rules, recChange("2022-01-01", "CertificateValidUntil"), "2021-12-29", false},
+		{"R", rules, recChange("2022-01-01", "CertificateValidUntil"), "2021-12-27", true},
+		{"R", rules, recChange("2022-01-01", "CertificateValidUntil"), "2021-12-28", false},
 
 		// Test
 		//
@@ -204,8 +218,12 @@ func TestDCCs(t *testing.T) {
 			if err != nil {
 				t.Fatal("Could not parse date")
 			}
+
+			// If the testcase contained only a date, add a single second to allow for realistic comparison
+			now = now.Add(time.Duration(1) * time.Second)
 		}
 
+		// Create DCC and validate it
 		hcert := getHcert(testCase.statements, testCase.changes)
 		err = validateDCC(hcert.DCC, VERIFICATION_POLICY_3G, testCase.rules, now)
 		isValid := err == nil
