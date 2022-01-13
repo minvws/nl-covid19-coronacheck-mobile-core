@@ -93,6 +93,7 @@ func TestDCCs(t *testing.T) {
 		{"V", rules, vaccDoseChange(4, 4), "2021-06-08", true},
 		{"V", rules, vaccDoseChange(42, 42), "2021-06-08", true},
 		{"V", rules, vaccDoseChange(3, 2), "2021-06-08", true},
+		{"V", rules, vaccDoseChange(2, 1), "2021-06-08", true},
 
 		{"V", rules, vaccJanssenDose(2, 2), "2021-06-07", false},
 		{"V", rules, vaccJanssenDose(2, 2), "2021-06-08", true},
@@ -102,6 +103,7 @@ func TestDCCs(t *testing.T) {
 		{"V", rules, vaccJanssenDose(4, 4), "2021-06-08", true},
 		{"V", rules, vaccJanssenDose(42, 42), "2021-06-08", true},
 		{"V", rules, vaccJanssenDose(3, 2), "2021-06-08", true},
+		{"V", rules, vaccJanssenDose(2, 1), "2021-06-08", true},
 
 		// Disease targeted
 		{"V", rules, vaccChange("840539007", "DiseaseTargeted"), validVaccTime, false},

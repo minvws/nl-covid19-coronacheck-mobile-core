@@ -189,12 +189,13 @@ func validateVaccination(vacc *hcertcommon.DCCVaccination, rules *europeanVerifi
 		return errors.Errorf("Dose number is smaller than the specified total amount of doses")
 	}
 
-	// Date of vaccination with a configured delay in validity, with a special case for Janssen
+	// Date of vaccination with a configured delay in validity, with a special case for Janssen and boosters
 	dov, err := parseDate(vacc.DateOfVaccination)
 	if err != nil {
 		return errors.Errorf("Date of vaccination could not be parsed")
 	}
 
+	// Determine waiting days depending on vaccine type and dose number
 	validityDelayDays := rules.VaccinationValidityDelayDays
 	if trimmedStringEquals(vacc.MedicinalProduct, VACCINE_MEDICINAL_PRODUCT_JANSSEN) {
 		validityDelayDays = rules.VaccinationJanssenValidityDelayDays
@@ -207,6 +208,12 @@ func validateVaccination(vacc *hcertcommon.DCCVaccination, rules *europeanVerifi
 		}
 	}
 
+	// Cancel waiting days if it's explicitly denoted as a booster
+	if vacc.DoseNumber > vacc.TotalSeriesOfDoses {
+		validityDelayDays = 0
+	}
+
+	// Apply waiting days and check if the vaccination is valid
 	nowDate := now.Truncate(24 * time.Hour).UTC()
 	vaccinationValidFrom := dov.Add(time.Duration(validityDelayDays*24) * time.Hour)
 	if nowDate.Before(vaccinationValidFrom) {
