@@ -62,12 +62,11 @@ type europeanVerificationRules struct {
 	TestAllowedTypes  []string `json:"testAllowedTypes"`
 	TestValidityHours int      `json:"testValidityHours"`
 
-	VaccinationValidityDelayDays               int      `json:"vaccinationValidityDelayDays"`
-	VaccinationJanssenValidityDelayDays        int      `json:"vaccinationJanssenValidityDelayDays"`
-	VaccinationJanssenValidityIntoForceDateStr string   `json:"vaccinationJanssenValidityDelayIntoForceDate"`
-	VaccinationValidityDays                    int      `json:"vaccinationValidityDays"`
-	VaccinationValidityIntoForceDateStr        string   `json:"vaccinationValidityIntoForceDate"`
-	VaccineAllowedProducts                     []string `json:"vaccineAllowedProducts"`
+	VaccinationValidityDelayDays        int      `json:"vaccinationValidityDelayDays"`
+	VaccinationJanssenValidityDelayDays int      `json:"vaccinationJanssenValidityDelayDays"`
+	VaccinationValidityDays             int      `json:"vaccinationValidityDays"`
+	VaccinationValidityIntoForceDateStr string   `json:"vaccinationValidityIntoForceDate"`
+	VaccineAllowedProducts              []string `json:"vaccineAllowedProducts"`
 
 	RecoveryValidFromDays  int `json:"recoveryValidFromDays"`
 	RecoveryValidUntilDays int `json:"recoveryValidUntilDays"`

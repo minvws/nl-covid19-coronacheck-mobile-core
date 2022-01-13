@@ -27,7 +27,6 @@
     "testValidityHours": 25,
     "vaccinationValidityDelayDays": 14,
     "vaccinationJanssenValidityDelayDays": 28,
-    "vaccinationJanssenValidityDelayIntoForceDate": "2021-08-14",
     "vaccinationValidityDays": 270,
     "vaccinationValidityIntoForceDate": "2000-01-01",
     "vaccineAllowedProducts": [
