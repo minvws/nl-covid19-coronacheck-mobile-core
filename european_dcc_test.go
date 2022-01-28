@@ -235,6 +235,17 @@ func TestDCCs(t *testing.T) {
 
 			t.Fatalf("Got wrong isValid %t for test case %d %s", isValid, i, errStr)
 		}
+
+		// Test against 1G verification policy
+		err = validateDCC(hcert.DCC, VERIFICATION_POLICY_1G, testCase.rules, now)
+		isValid = err == nil
+		if testCase.statements != "T" {
+			if isValid {
+				t.Fatalf("Non-test with 1G verification policy should be invalid at test case %d", i)
+			}
+		} else if isValid != testCase.isValid {
+			t.Fatalf("Test with 1G verification policy, got wrong isValid %t for test case %d", isValid, i)
+		}
 	}
 }
 

@@ -25,7 +25,7 @@ const (
 )
 
 const (
-	VERIFICATION_POLICY_2G string = "2"
+	VERIFICATION_POLICY_1G string = "1"
 	VERIFICATION_POLICY_3G string = "3"
 )
 
@@ -137,6 +137,14 @@ func VerifyWithTime(proofQREncoded []byte, verificationPolicy string, unixTimeSe
 }
 
 func verify(proofQREncoded []byte, policy string, now time.Time) *VerificationResult {
+	// Verification policy must be either 1G or 3G
+	if policy != VERIFICATION_POLICY_1G && policy != VERIFICATION_POLICY_3G {
+		return &VerificationResult{
+			Status: VERIFICATION_FAILED_ERROR,
+			Error:  errors.Errorf("Unrecognized policy was provided").Error(),
+		}
+	}
+
 	if idemixverifier.HasNLPrefix(proofQREncoded) {
 		return handleDomesticVerification(proofQREncoded, policy, now)
 	} else {

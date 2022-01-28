@@ -113,21 +113,21 @@ func validateDCC(dcc *hcertcommon.DCC, policy string, rules *europeanVerificatio
 
 	// Validate statements
 	for _, vacc := range dcc.Vaccinations {
-		err = validateVaccination(vacc, rules, now)
+		err = validateVaccination(vacc, policy, rules, now)
 		if err != nil {
 			return errors.WrapPrefix(err, "Invalid vaccination statement", 0)
 		}
 	}
 
 	for _, test := range dcc.Tests {
-		err = validateTest(test, policy, rules, now)
+		err = validateTest(test, rules, now)
 		if err != nil {
 			return errors.WrapPrefix(err, "Invalid test statement", 0)
 		}
 	}
 
 	for _, rec := range dcc.Recoveries {
-		err = validateRecovery(rec, rules, now)
+		err = validateRecovery(rec, policy, rules, now)
 		if err != nil {
 			return errors.WrapPrefix(err, "Invalid recovery statement", 0)
 		}
@@ -173,7 +173,12 @@ func validateStatementAmount(dcc *hcertcommon.DCC) error {
 	return nil
 }
 
-func validateVaccination(vacc *hcertcommon.DCCVaccination, rules *europeanVerificationRules, now time.Time) error {
+func validateVaccination(vacc *hcertcommon.DCCVaccination, policy string, rules *europeanVerificationRules, now time.Time) error {
+	// 1G policy doesn't allow vaccinations
+	if policy == VERIFICATION_POLICY_1G {
+		return errors.Errorf("A vaccination is not valid for the chosen 1G policy")
+	}
+
 	// Disease agent
 	if !trimmedStringEquals(vacc.DiseaseTargeted, DISEASE_TARGETED_COVID_19) {
 		return errors.Errorf("Disease targeted should be COVID-19")
@@ -228,12 +233,7 @@ func validateVaccination(vacc *hcertcommon.DCCVaccination, rules *europeanVerifi
 	return nil
 }
 
-func validateTest(test *hcertcommon.DCCTest, policy string, rules *europeanVerificationRules, now time.Time) error {
-	// 2G policy
-	if policy == VERIFICATION_POLICY_2G {
-		return errors.Errorf("A negative test is not valid for the chosen 2G policy")
-	}
-
+func validateTest(test *hcertcommon.DCCTest, rules *europeanVerificationRules, now time.Time) error {
 	// Disease agent
 	if !trimmedStringEquals(test.DiseaseTargeted, DISEASE_TARGETED_COVID_19) {
 		return errors.Errorf("Disease targeted should be COVID-19")
@@ -271,7 +271,12 @@ func validateTest(test *hcertcommon.DCCTest, policy string, rules *europeanVerif
 	return nil
 }
 
-func validateRecovery(rec *hcertcommon.DCCRecovery, rules *europeanVerificationRules, now time.Time) error {
+func validateRecovery(rec *hcertcommon.DCCRecovery, policy string, rules *europeanVerificationRules, now time.Time) error {
+	// 1G policy doesn't allow vaccinations
+	if policy == VERIFICATION_POLICY_1G {
+		return errors.Errorf("A recovery is not valid for the chosen 1G policy")
+	}
+
 	// Disease agent
 	if !trimmedStringEquals(rec.DiseaseTargeted, DISEASE_TARGETED_COVID_19) {
 		return errors.Errorf("Disease targeted should be COVID-19")

@@ -91,23 +91,15 @@ func checkFreshness(generatedAtTimestamp int64, isPaperProofStr string, rules *d
 }
 
 func checkPolicy(policy string, credentialVersion int, attributes map[string]string) error {
-	// Credential version 2 doesn't contain any category, and is assumed to be valid for 2G
-	if credentialVersion == 2 {
-		return nil
-	}
-
-	// Any other credential version contains a category attribute with a category
-	// The 3G policy allows any category
+	// Verification policy 3G accepts any kind of proof, without category or with a test, vaccination or recovery
 	if policy == VERIFICATION_POLICY_3G {
 		return nil
 	}
 
-	// Otherwise, the credential must contain the 2G category attribute
-	// TODO: During the migration period of 28 days after forced update, an empty category attribute
-	//   is also allowed. This should be removed after the migration is complete
-	if attributes["category"] == VERIFICATION_POLICY_2G || attributes["category"] == "" {
-		return nil
+	// Otherwise the policy is 1G, and an according category is required
+	if attributes["category"] != VERIFICATION_POLICY_1G {
+		return errors.Errorf("The credential did not contain the required 1G credential")
 	}
 
-	return errors.Errorf("The credential did not contain the required 2G category")
+	return nil
 }
