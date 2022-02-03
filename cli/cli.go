@@ -20,6 +20,7 @@ func main() {
 	verifyCmd := flag.NewFlagSet("verify", flag.ExitOnError)
 	verifyConfigPath := verifyCmd.String("configdir", "./testdata", "Config directory to use")
 	verifyTimestamp := verifyCmd.Int64("timestamp", time.Now().Unix(), "Timestamp of verification to use")
+	verifyPolicy := verifyCmd.String("verificationpolicy", "3G", "Verification policy to use")
 
 	proofIdentifierCmd := flag.NewFlagSet("proofidentifier", flag.ExitOnError)
 	proofIdentifierConfigPath := proofIdentifierCmd.String("configdir", "./testdata", "Config directory to use")
@@ -47,7 +48,7 @@ func main() {
 	}
 
 	if verifyCmd.Parsed() {
-		err := runVerify(verifyCmd, verifyConfigPath, verifyTimestamp)
+		err := runVerify(verifyCmd, *verifyConfigPath, *verifyTimestamp, *verifyPolicy)
 		if err != nil {
 			_, _ = fmt.Fprintln(os.Stderr, err.Error())
 			os.Exit(1)
@@ -71,26 +72,37 @@ func main() {
 	}
 }
 
-func runVerify(verifyFlags *flag.FlagSet, configPath *string, timestamp *int64) error {
+func runVerify(verifyFlags *flag.FlagSet, configPath string, timestamp int64, verificationPolicy string) error {
+	// Make sure QR is given and config path exists
 	qr := verifyFlags.Arg(0)
 	if len(qr) == 0 {
 		return errors.Errorf("No QR was given")
 	}
 
-	if _, err := os.Stat(*configPath); os.IsNotExist(err) {
-		return errors.Errorf("Config directory '%s' does not exist\n", *configPath)
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		return errors.Errorf("Config directory '%s' does not exist\n", configPath)
 	}
 
-	initializeResult := mobilecore.InitializeVerifier(*configPath)
+	// Take first character of verification policy and let library handle allowed values
+	if len(verificationPolicy) == 0 {
+		return errors.Errorf("Invalid empty verification policy")
+	}
+
+	verificationPolicy = verificationPolicy[:1]
+
+	// Initialization
+	initializeResult := mobilecore.InitializeVerifier(configPath)
 	if initializeResult.Error != "" {
 		return errors.Errorf("Could not initialize verifier: %s\n", initializeResult.Error)
 	}
 
-	verifyResult := mobilecore.VerifyWithTime([]byte(qr), mobilecore.VERIFICATION_POLICY_3G, *timestamp)
+	// Verify
+	verifyResult := mobilecore.VerifyWithTime([]byte(qr), verificationPolicy, timestamp)
 	if verifyResult.Error != "" {
 		return errors.Errorf("QR did not verify: %s\n", verifyResult.Error)
 	}
 
+	// Status checking
 	if verifyResult.Status == mobilecore.VERIFICATION_FAILED_UNRECOGNIZED_PREFIX {
 		return errors.Errorf("Unrecognized QR prefix")
 	}
