@@ -113,7 +113,7 @@ func validateDCC(dcc *hcertcommon.DCC, policy string, rules *europeanVerificatio
 
 	// Validate statements
 	for _, vacc := range dcc.Vaccinations {
-		err = validateVaccination(vacc, policy, rules, now)
+		err = validateVaccination(vacc, dcc.DateOfBirth, policy, rules, now)
 		if err != nil {
 			return errors.WrapPrefix(err, "Invalid vaccination statement", 0)
 		}
@@ -173,7 +173,7 @@ func validateStatementAmount(dcc *hcertcommon.DCC) error {
 	return nil
 }
 
-func validateVaccination(vacc *hcertcommon.DCCVaccination, policy string, rules *europeanVerificationRules, now time.Time) error {
+func validateVaccination(vacc *hcertcommon.DCCVaccination, dob string, policy string, rules *europeanVerificationRules, now time.Time) error {
 	// 1G policy doesn't allow vaccinations
 	if policy == VERIFICATION_POLICY_1G {
 		return errors.Errorf("A vaccination is not valid for the chosen 1G policy")
@@ -224,10 +224,19 @@ func validateVaccination(vacc *hcertcommon.DCCVaccination, policy string, rules 
 		return errors.Errorf("Date of vaccination is before the delayed validity date")
 	}
 
-	// From the into force date, check if the vaccination validity has not yet ended
-	validUntil := dov.Add(time.Duration(rules.VaccinationValidityDays*24) * time.Hour)
-	if rules.vaccinationValidityIntoForceDate.Before(now) && validUntil.Before(now) {
-		return errors.Errorf("Date of vaccination is beyond the primary cycle validity period")
+	// From the into force date from a minimum age (typically adults),
+	//  check if the vaccination validity has not yet ended
+	dobTime, err := mostRecentDOBDayMonth(dob)
+	if err != nil {
+		return errors.WrapPrefix(err, "Could not determine most recent date of birth day/month", 0)
+	}
+
+	isAdult := dobTime.AddDate(rules.VaccinationMinimumAgeForValidityYears, 0, 0).Before(now)
+	if rules.vaccinationValidityIntoForceDate.Before(now) && isAdult {
+		validUntil := dov.Add(time.Duration(rules.VaccinationValidityDays*24) * time.Hour)
+		if validUntil.Before(now) {
+			return errors.Errorf("Date of vaccination is beyond the primary cycle validity period")
+		}
 	}
 
 	return nil
@@ -399,31 +408,4 @@ func containsTrimmedString(list []string, untrimmed string) bool {
 	}
 
 	return false
-}
-
-// To handle the special case of BG including full ISO8601 date strings, all strings are
-//   reduced to their maximum length, so any following invalid information is ignored
-func truncateDateString(value string) string {
-	if len(value) > 10 {
-		return value[:10]
-	}
-
-	return value
-}
-
-func parseDate(value string) (time.Time, error) {
-	truncatedValue := truncateDateString(value)
-	return time.Parse(YYYYMMDD_FORMAT, truncatedValue)
-}
-
-func parseDateOfBirth(value string) (year, month, day string, err error) {
-	truncatedValue := truncateDateString(value)
-
-	// Birth dates may have the day absent, or both day and month absent
-	res := DATE_OF_BIRTH_REGEX.FindStringSubmatch(truncatedValue)
-	if len(res) != 4 {
-		return "", "", "", errors.Errorf("Did not conform to regex")
-	}
-
-	return res[1], res[2], res[3], nil
 }

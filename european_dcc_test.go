@@ -118,6 +118,26 @@ func TestDCCs(t *testing.T) {
 		{"V", rules, vaccDoseChange(3, 2), "2022-03-04", true},
 		{"V", rules, vaccDoseChange(3, 2), "2022-03-05", false},
 
+		// Valid until on primary doses with different birth dates
+		{"V", rules, dobChange("2008-06-15"), "2026-06-14", true},
+		{"V", rules, dobChange("2008-06-15"), "2026-06-15", false},
+		{"V", rules, dobChange("2008-02-29"), "2026-02-28", true},
+		{"V", rules, dobChange("2008-02-29"), "2026-03-01", false},
+		{"V", rules, dobChange("2006-03-01"), "2024-02-29", true},
+		{"V", rules, dobChange("2006-03-01"), "2024-03-01", false},
+
+		{"V", rules, dobChange("2006-11"), "2024-11-29", true},
+		{"V", rules, dobChange("2006-11"), "2024-11-30", false},
+		{"V", rules, dobChange("2006-02"), "2024-02-27", true},
+		{"V", rules, dobChange("2006-02"), "2024-02-28", false},
+		{"V", rules, dobChange("2008-02"), "2026-02-28", true},
+		{"V", rules, dobChange("2008-02"), "2026-03-01", false},
+
+		{"V", rules, dobChange("2006"), "2024-12-30", true},
+		{"V", rules, dobChange("2006"), "2024-12-31", false},
+
+		{"V", rules, dobChange(""), "2024-01-01", false},
+
 		// Disease targeted
 		{"V", rules, vaccChange("840539007", "DiseaseTargeted"), validVaccTime, false},
 
