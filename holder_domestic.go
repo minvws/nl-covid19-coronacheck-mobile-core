@@ -19,26 +19,26 @@ type CreateCredentialResultValue struct {
 func GenerateHolderSk() *Result {
 	holderSkJson, err := json.Marshal(holder.GenerateSk())
 	if err != nil {
-		return WrappedErrorResult(err, "Could not serialize holdercore secret key")
+		return WrappedErrorResult(err, "Could not serialize secret key")
 	}
 
 	return &Result{holderSkJson, ""}
 }
 
-func CreateCommitmentMessage(holderSkJson, prepareIssueMessageJson []byte) *Result {
+func CreateCommitmentMessage(holderSkJson, issueSpecificationMessageJson []byte) *Result {
 	holderSk, err := unmarshalHolderSk(holderSkJson)
 	if err != nil {
 		return ErrorResult(err)
 	}
 
-	pim := &idemixcommon.PrepareIssueMessage{}
-	err = json.Unmarshal(prepareIssueMessageJson, pim)
+	ism := &idemixcommon.IssueSpecificationMessage{}
+	err = json.Unmarshal(issueSpecificationMessageJson, ism)
 	if err != nil {
-		return WrappedErrorResult(err, "Could not JSON unmarshal prepare issue message")
+		return WrappedErrorResult(err, "Could not JSON unmarshal issue specification message")
 	}
 
 	var icm *gabi.IssueCommitmentMessage
-	lastCredBuilders, icm, err = domesticHolder.CreateCommitments(holderSk, pim)
+	lastCredBuilders, icm, err = domesticHolder.CreateCommitments(holderSk, ism)
 	if err != nil {
 		return WrappedErrorResult(err, "Could not create commitments")
 	}
@@ -112,15 +112,15 @@ func ReadDomesticCredential(credJson []byte) *Result {
 	return &Result{attributesJson, ""}
 }
 
-func Disclose(holderSkJson, credJson []byte) *Result {
-	return disclose(holderSkJson, credJson, time.Now())
+func Disclose(holderSkJson, credJson []byte, disclosurePolicy string) *Result {
+	return disclose(holderSkJson, credJson, disclosurePolicy, time.Now())
 }
 
-func DiscloseWithTime(holderSkJson, credJson []byte, unixTimeSeconds int64) *Result {
-	return disclose(holderSkJson, credJson, time.Unix(unixTimeSeconds, 0))
+func DiscloseWithTime(holderSkJson, credJson []byte, disclosurePolicy string, unixTimeSeconds int64) *Result {
+	return disclose(holderSkJson, credJson, disclosurePolicy, time.Unix(unixTimeSeconds, 0))
 }
 
-func disclose(holderSkJson, credJson []byte, now time.Time) *Result {
+func disclose(holderSkJson, credJson []byte, disclosurePolicy string, now time.Time) *Result {
 	holderSk, err := unmarshalHolderSk(holderSkJson)
 	if err != nil {
 		return ErrorResult(err)
@@ -131,7 +131,16 @@ func disclose(holderSkJson, credJson []byte, now time.Time) *Result {
 		return ErrorResult(err)
 	}
 
-	proofPrefixed, _, err := domesticHolder.DiscloseAllWithTimeQREncoded(holderSk, cred, now)
+	var hideCategory bool
+	if disclosurePolicy == DISCLOSURE_POLICY_1G {
+		hideCategory = false
+	} else if disclosurePolicy == DISCLOSURE_POLICY_3G {
+		hideCategory = true
+	} else {
+		return ErrorResult(errors.Errorf("Unrecognized disclosure policy"))
+	}
+
+	proofPrefixed, _, err := domesticHolder.DiscloseWithTimeQREncoded(holderSk, cred, hideCategory, now)
 	if err != nil {
 		return WrappedErrorResult(err, "Could not disclosure credential")
 	}

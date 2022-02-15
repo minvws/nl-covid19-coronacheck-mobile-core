@@ -26,7 +26,7 @@ func main() {
 	proofIdentifierConfigPath := proofIdentifierCmd.String("configdir", "./testdata", "Config directory to use")
 
 	commitmentsCmd := flag.NewFlagSet("commitments", flag.ExitOnError)
-	issuerNonceBase64 := commitmentsCmd.String("prepare-issue-message", "", "Issuer nonce base64")
+	issueSpecificationMessage := commitmentsCmd.String("issue-specification-message", "", "Issue specification message")
 	commitmentsConfigPath := commitmentsCmd.String("configdir", "./testdata", "Config directory to use")
 
 	if len(os.Args) < 2 {
@@ -64,7 +64,7 @@ func main() {
 	}
 
 	if commitmentsCmd.Parsed() {
-		err := runCommitments(commitmentsCmd, commitmentsConfigPath, issuerNonceBase64)
+		err := runCommitments(commitmentsCmd, commitmentsConfigPath, issueSpecificationMessage)
 		if err != nil {
 			_, _ = fmt.Fprintln(os.Stderr, err.Error())
 			os.Exit(1)
@@ -72,7 +72,7 @@ func main() {
 	}
 }
 
-func runVerify(verifyFlags *flag.FlagSet, configPath string, timestamp int64, verificationPolicy string) error {
+func runVerify(verifyFlags *flag.FlagSet, configPath string, timestamp int64, givenVerificationPolicy string) error {
 	// Make sure QR is given and config path exists
 	qr := verifyFlags.Arg(0)
 	if len(qr) == 0 {
@@ -83,12 +83,16 @@ func runVerify(verifyFlags *flag.FlagSet, configPath string, timestamp int64, ve
 		return errors.Errorf("Config directory '%s' does not exist\n", configPath)
 	}
 
-	// Take first character of verification policy and let library handle allowed values
-	if len(verificationPolicy) == 0 {
-		return errors.Errorf("Invalid empty verification policy")
+	// Choose the verification policy
+	policies := map[string]string{
+		"1G": mobilecore.VERIFICATION_POLICY_1G,
+		"3G": mobilecore.VERIFICATION_POLICY_3G,
 	}
 
-	verificationPolicy = verificationPolicy[:1]
+	policy, ok := policies[givenVerificationPolicy]
+	if !ok {
+		return errors.Errorf("Unrecognized verification policy. Allowed values are: 1G, 3G")
+	}
 
 	// Initialization
 	initializeResult := mobilecore.InitializeVerifier(configPath)
@@ -97,7 +101,7 @@ func runVerify(verifyFlags *flag.FlagSet, configPath string, timestamp int64, ve
 	}
 
 	// Verify
-	verifyResult := mobilecore.VerifyWithTime([]byte(qr), verificationPolicy, timestamp)
+	verifyResult := mobilecore.VerifyWithTime([]byte(qr), policy, timestamp)
 	if verifyResult.Error != "" {
 		return errors.Errorf("QR did not verify: %s\n", verifyResult.Error)
 	}
@@ -165,13 +169,13 @@ func runProofIdentifier(pdFlags *flag.FlagSet, configPath *string) error {
 	return nil
 }
 
-func runCommitments(commitments *flag.FlagSet, configPath *string, prepareIssueMessageJson *string) error {
+func runCommitments(commitments *flag.FlagSet, configPath *string, issueSpecificationMessageJson *string) error {
 	if _, err := os.Stat(*configPath); os.IsNotExist(err) {
 		return errors.Errorf("Config directory '%s' does not exist\n", *configPath)
 	}
 
-	if *prepareIssueMessageJson == "" {
-		return errors.Errorf("No prepare issue message JSON was provided")
+	if *issueSpecificationMessageJson == "" {
+		return errors.Errorf("No issue specification message JSON was provided")
 	}
 
 	initResult := mobilecore.InitializeHolder(*configPath)
@@ -184,7 +188,7 @@ func runCommitments(commitments *flag.FlagSet, configPath *string, prepareIssueM
 		return errors.Errorf("Could not generate holder sk: %s", holderSkResult.Error)
 	}
 
-	icmResult := mobilecore.CreateCommitmentMessage(holderSkResult.Value, []byte(*prepareIssueMessageJson))
+	icmResult := mobilecore.CreateCommitmentMessage(holderSkResult.Value, []byte(*issueSpecificationMessageJson))
 	if icmResult.Error != "" {
 		return errors.Errorf("Could not create commitments: %s", icmResult.Error)
 	}

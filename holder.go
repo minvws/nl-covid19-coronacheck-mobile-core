@@ -15,6 +15,11 @@ const (
 	CREATE_CREDENTIAL_VERSION   = 3
 )
 
+const (
+	DISCLOSURE_POLICY_1G = "1"
+	DISCLOSURE_POLICY_3G = "3"
+)
+
 var (
 	holderConfig *holderConfiguration
 

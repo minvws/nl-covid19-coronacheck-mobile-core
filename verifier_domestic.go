@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+const (
+	CATEGORY_ATTRIBUTE_1G = "1"
+)
+
 func verifyDomestic(proof []byte, policy string, rules *domesticVerificationRules, now time.Time) (verificationDetails *VerificationDetails, err error) {
 	verifiedCred, err := domesticVerifier.VerifyQREncoded(proof)
 	if err != nil {
@@ -30,7 +34,7 @@ func verifyDomestic(proof []byte, policy string, rules *domesticVerificationRule
 		return nil, err
 	}
 
-	err = checkPolicy(policy, verifiedCred.CredentialVersion, verifiedCred.Attributes)
+	err = checkPolicy(policy, verifiedCred.Attributes)
 	if err != nil {
 		return nil, err
 	}
@@ -90,14 +94,19 @@ func checkFreshness(generatedAtTimestamp int64, isPaperProofStr string, rules *d
 	return nil
 }
 
-func checkPolicy(policy string, credentialVersion int, attributes map[string]string) error {
+func checkPolicy(policy string, attributes map[string]string) error {
 	// Verification policy 3G accepts any kind of proof, without category or with a test, vaccination or recovery
 	if policy == VERIFICATION_POLICY_3G {
 		return nil
 	}
 
-	// Otherwise the policy is 1G, and an according category is required
-	if attributes["category"] != VERIFICATION_POLICY_1G {
+	if policy != VERIFICATION_POLICY_1G {
+		return errors.Errorf("Unrecognized verification policy was given")
+	}
+
+	// For 1G an according category is required
+	category, ok := attributes["category"]
+	if !ok || category != CATEGORY_ATTRIBUTE_1G {
 		return errors.Errorf("The credential did not contain the required 1G credential")
 	}
 

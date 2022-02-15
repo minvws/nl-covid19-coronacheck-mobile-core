@@ -25,8 +25,8 @@ const (
 )
 
 const (
-	VERIFICATION_POLICY_1G string = "1"
-	VERIFICATION_POLICY_3G string = "3"
+	VERIFICATION_POLICY_1G = "1"
+	VERIFICATION_POLICY_3G = "3"
 )
 
 type VerificationResult struct {
