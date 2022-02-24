@@ -107,7 +107,7 @@ func checkPolicy(policy string, attributes map[string]string) error {
 	// For 1G an according category is required
 	category, ok := attributes["category"]
 	if !ok || category != CATEGORY_ATTRIBUTE_1G {
-		return errors.Errorf("The credential did not contain the required 1G credential")
+		return errors.Errorf("The credential did not contain the required 1G attribute")
 	}
 
 	return nil
