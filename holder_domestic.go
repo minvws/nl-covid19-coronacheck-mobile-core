@@ -131,16 +131,16 @@ func disclose(holderSkJson, credJson []byte, disclosurePolicy string, now time.T
 		return ErrorResult(err)
 	}
 
-	var hideCategory bool
+	var categoryMode int
 	if disclosurePolicy == DISCLOSURE_POLICY_1G {
-		hideCategory = false
+		categoryMode = holder.CATEGORY_DISCLOSED_V3_SERIALIZATION
 	} else if disclosurePolicy == DISCLOSURE_POLICY_3G {
-		hideCategory = true
+		categoryMode = holder.CATEGORY_HIDDEN
 	} else {
 		return ErrorResult(errors.Errorf("Unrecognized disclosure policy"))
 	}
 
-	proofPrefixed, _, err := domesticHolder.DiscloseWithTimeQREncoded(holderSk, cred, hideCategory, now)
+	proofPrefixed, _, err := domesticHolder.DiscloseWithTimeQREncoded(holderSk, cred, categoryMode, now)
 	if err != nil {
 		return WrappedErrorResult(err, "Could not disclosure credential")
 	}

@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/go-errors/errors v1.4.0
 	github.com/minvws/nl-covid19-coronacheck-hcert v0.4.4
-	github.com/minvws/nl-covid19-coronacheck-idemix v0.8.0
+	github.com/minvws/nl-covid19-coronacheck-idemix v0.8.1
 	github.com/privacybydesign/gabi v0.1.1-coronacheck
 )
 
