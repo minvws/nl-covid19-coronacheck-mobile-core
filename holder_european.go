@@ -5,9 +5,9 @@ import (
 	"time"
 )
 
-func ReadEuropeanCredential(proofPrefixed []byte) *Result {
+func ReadEuropeanCredential(proofQREncoded []byte) *Result {
 	// Read the proof
-	hcert, err := europeanHolder.ReadQREncoded(proofPrefixed)
+	hcert, err := europeanHolder.ReadQREncoded(proofQREncoded)
 	if err != nil {
 		return WrappedErrorResult(err, "Could not read European credential")
 	}
@@ -24,4 +24,22 @@ func ReadEuropeanCredential(proofPrefixed []byte) *Result {
 	}
 
 	return &Result{hcertJson, ""}
+}
+
+func IsDCC(proofQREncoded []byte) bool {
+	_, err := europeanHolder.ReadQREncoded(proofQREncoded)
+	return err == nil
+}
+
+func IsForeignDCC(proofQREncoded []byte) bool {
+	hcert, err := europeanHolder.ReadQREncoded(proofQREncoded)
+	if err != nil {
+		return false
+	}
+
+	if hcert.Issuer != DCC_DOMESTIC_ISSUER_COUNTRY_CODE {
+		return true
+	}
+
+	return false
 }

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/go-errors/errors"
 	hcertcommon "github.com/minvws/nl-covid19-coronacheck-hcert/common"
-	idemixverifier "github.com/minvws/nl-covid19-coronacheck-idemix/verifier"
+	idemixcommon "github.com/minvws/nl-covid19-coronacheck-idemix/common"
 	mobilecore "github.com/minvws/nl-covid19-coronacheck-mobile-core"
 	"os"
 	"time"
@@ -143,7 +143,7 @@ func runProofIdentifier(pdFlags *flag.FlagSet, configPath *string) error {
 	domesticVerifier, europeanVerifier := mobilecore.GetVerifiersForCLI()
 
 	var proofIdentifier []byte
-	if idemixverifier.HasNLPrefix(qr) {
+	if idemixcommon.HasNLPrefix(qr) {
 		verifiedCred, err := domesticVerifier.VerifyQREncoded(qr)
 		if err != nil {
 			return errors.WrapPrefix(err, "Could not verify domestic QR", 0)

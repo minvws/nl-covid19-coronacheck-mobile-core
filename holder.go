@@ -13,6 +13,8 @@ const (
 	HOLDER_CONFIG_FILENAME      = "config.json"
 	HOLDER_PUBLIC_KEYS_FILENAME = "public_keys.json"
 	CREATE_CREDENTIAL_VERSION   = 3
+
+	DCC_DOMESTIC_ISSUER_COUNTRY_CODE = "NL"
 )
 
 const (

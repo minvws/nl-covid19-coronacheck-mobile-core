@@ -15,20 +15,39 @@ func TestExampleQRs(t *testing.T) {
 			t.Fatal("Expected readability", testcase.expectedReadability, "of testcase", i, r1.Error)
 		}
 
-		r2 := InitializeVerifier("./testdata")
-		if r2.Error != "" {
-			t.Fatal("Could not initialize verifier", r2.Error)
+		r2 := IsDCC(testcase.qr)
+		if r2 != testcase.expectedReadability {
+			t.Fatal("Expected IsDCC", testcase.expectedReadability, "of testcase", i)
 		}
 
-		r3 := verify(testcase.qr, VERIFICATION_POLICY_3G, now)
-		didError := r3.Error != ""
+		// TODO: Properly fix implementation and testcases for missing prefix and for islands-issued DCCs
+		r3 := IsForeignDCC(testcase.qr)
+		if testcase.expectedStatus == VERIFICATION_SUCCESS && testcase.qr[0] == 'H' && testcase.expectedCountryCode != "CW" {
+			if testcase.expectedCountryCode == "NL" {
+				if r3 {
+					t.Fatal("Expected isForeignDCC false (NL) for testcase", i)
+				}
+			} else if !r3 {
+				t.Fatal("Expected isForeignDCC true for testcase", i)
+			}
+		} else if r3 {
+			t.Fatal("Expected IsForeignDCC false (unreadable) for testcase", i)
+		}
+
+		r4 := InitializeVerifier("./testdata")
+		if r4.Error != "" {
+			t.Fatal("Could not initialize verifier", r4.Error)
+		}
+
+		r5 := verify(testcase.qr, VERIFICATION_POLICY_3G, now)
+		didVerifyError := r5.Error != ""
 		expectError := testcase.expectedStatus == VERIFICATION_FAILED_ERROR
-		if didError != expectError {
-			t.Fatal("Presence of error is", didError, "while expecting", expectError, r3.Error)
+		if didVerifyError != expectError {
+			t.Fatal("Presence of verification error is", didVerifyError, "while expecting", expectError, r5.Error)
 		}
 
-		if r3.Status != testcase.expectedStatus {
-			t.Fatal("Expected status", testcase.expectedStatus, "of testcase", i, "but got", r3.Status)
+		if r5.Status != testcase.expectedStatus {
+			t.Fatal("Expected status", testcase.expectedStatus, "of testcase", i, "but got", r5.Status)
 		}
 
 		if testcase.expectedStatus != VERIFICATION_SUCCESS {
@@ -36,7 +55,7 @@ func TestExampleQRs(t *testing.T) {
 		}
 
 		testcase.expectedDetails.IssuerCountryCode = testcase.expectedCountryCode
-		if *r3.Details != *testcase.expectedDetails {
+		if *r5.Details != *testcase.expectedDetails {
 			t.Fatal("Unexpected details for testcase", i)
 		}
 	}

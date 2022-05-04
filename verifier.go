@@ -6,6 +6,7 @@ import (
 	"github.com/go-errors/errors"
 	hcertcommon "github.com/minvws/nl-covid19-coronacheck-hcert/common"
 	hcertverifier "github.com/minvws/nl-covid19-coronacheck-hcert/verifier"
+	idemixcommon "github.com/minvws/nl-covid19-coronacheck-idemix/common"
 	idemixverifier "github.com/minvws/nl-covid19-coronacheck-idemix/verifier"
 	"os"
 	"path"
@@ -146,7 +147,7 @@ func verify(proofQREncoded []byte, policy string, now time.Time) *VerificationRe
 		}
 	}
 
-	if idemixverifier.HasNLPrefix(proofQREncoded) {
+	if idemixcommon.HasNLPrefix(proofQREncoded) {
 		return handleDomesticVerification(proofQREncoded, policy, now)
 	} else {
 		return handleEuropeanVerification(proofQREncoded, policy, now)

@@ -242,6 +242,16 @@ func TestVerificationPolicy(t *testing.T) {
 	}
 }
 
+func TestHasDomesticPrefix(t *testing.T) {
+	if !HasDomesticPrefix([]byte("NL2:")) ||
+		!HasDomesticPrefix([]byte("NLZ:")) ||
+		HasDomesticPrefix([]byte("NL_:")) ||
+		HasDomesticPrefix([]byte("NL:")) ||
+		HasDomesticPrefix([]byte("HC1:")) {
+		t.Fatal("Unexpected result for HasDomesticPrefix")
+	}
+}
+
 func buildCredentialsAttributes(credentialAmount int) []map[string]string {
 	cas := make([]map[string]string, 0, credentialAmount)
 

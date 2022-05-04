@@ -120,6 +120,10 @@ func DiscloseWithTime(holderSkJson, credJson []byte, disclosurePolicy string, un
 	return disclose(holderSkJson, credJson, disclosurePolicy, time.Unix(unixTimeSeconds, 0))
 }
 
+func HasDomesticPrefix(proofQREncoded []byte) bool {
+	return idemixcommon.HasNLPrefix(proofQREncoded)
+}
+
 func disclose(holderSkJson, credJson []byte, disclosurePolicy string, now time.Time) *Result {
 	holderSk, err := unmarshalHolderSk(holderSkJson)
 	if err != nil {
