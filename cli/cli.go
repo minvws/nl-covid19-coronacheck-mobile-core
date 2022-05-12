@@ -29,6 +29,10 @@ func main() {
 	issueSpecificationMessage := commitmentsCmd.String("issue-specification-message", "", "Issue specification message")
 	commitmentsConfigPath := commitmentsCmd.String("configdir", "./testdata", "Config directory to use")
 
+	explainCmd := flag.NewFlagSet("explain", flag.ExitOnError)
+	explainConfigPath := explainCmd.String("configdir", "./testdata", "Config directory to use")
+	explainTimestamp := explainCmd.Int64("timestamp", time.Now().Unix(), "Timestamp of verification to use")
+
 	if len(os.Args) < 2 {
 		_, _ = fmt.Fprintln(os.Stderr, availableCommandsMsg)
 		os.Exit(1)
@@ -41,6 +45,8 @@ func main() {
 		_ = commitmentsCmd.Parse(os.Args[2:])
 	case proofIdentifierCmd.Name():
 		_ = proofIdentifierCmd.Parse(os.Args[2:])
+	case explainCmd.Name():
+		_ = explainCmd.Parse(os.Args[2:])
 	default:
 		_, _ = fmt.Fprintln(os.Stderr, availableCommandsMsg)
 		flag.PrintDefaults()
@@ -70,6 +76,14 @@ func main() {
 			os.Exit(1)
 		}
 	}
+
+	if explainCmd.Parsed() {
+		err := runExplain(explainCmd, *explainConfigPath, *explainTimestamp)
+		if err != nil {
+			_, _ = fmt.Fprintln(os.Stderr, err.Error())
+			os.Exit(1)
+		}
+	}
 }
 
 func runVerify(verifyFlags *flag.FlagSet, configPath string, timestamp int64, givenVerificationPolicy string) error {
@@ -84,11 +98,6 @@ func runVerify(verifyFlags *flag.FlagSet, configPath string, timestamp int64, gi
 	}
 
 	// Choose the verification policy
-	policies := map[string]string{
-		"1G": mobilecore.VERIFICATION_POLICY_1G,
-		"3G": mobilecore.VERIFICATION_POLICY_3G,
-	}
-
 	policy, ok := policies[givenVerificationPolicy]
 	if !ok {
 		return errors.Errorf("Unrecognized verification policy. Allowed values are: 1G, 3G")
@@ -195,4 +204,107 @@ func runCommitments(commitments *flag.FlagSet, configPath *string, issueSpecific
 
 	fmt.Println(string(icmResult.Value))
 	return nil
+}
+
+func runExplain(explainFlags *flag.FlagSet, configPath string, timestamp int64) error {
+	// Make sure QR is given and config path exists
+	qr := []byte(explainFlags.Arg(0))
+	if len(qr) == 0 {
+		return errors.Errorf("No QR was given")
+	}
+
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		return errors.Errorf("Config directory '%s' does not exist\n", configPath)
+	}
+
+	// Initialization
+	initializeResult := mobilecore.InitializeVerifier(configPath)
+	if initializeResult.Error != "" {
+		return errors.Errorf("Could not initialize verifier: %s\n", initializeResult.Error)
+	}
+
+	_, europeanVerifier := mobilecore.GetVerifiersForCLI()
+
+	if idemixcommon.HasNLPrefix(qr) {
+		fmt.Println("Recognized as QR-code with Dutch prefix")
+		fmt.Println("Explain is not implemented for Dutch QR codes yet")
+
+	} else if hcertcommon.HasEUPrefix(qr) {
+		fmt.Println("\nRecognized as QR-code with European prefix")
+
+		verified, err := europeanVerifier.VerifyQREncoded(qr)
+		if err != nil {
+			return errors.WrapPrefix(err, "QR-code signature verification failed:", 0)
+		}
+
+		kid := base64.StdEncoding.EncodeToString(verified.PublicKey.SubjectPk)[:8]
+		fmt.Printf(
+			"Successfully verified DCC with key with key id '%s' (IAN '%s', SAN '%s')\n",
+			kid, verified.PublicKey.IssuerAltName, verified.PublicKey.SubjectAltName,
+		)
+
+		dcc := verified.HealthCertificate.DCC
+		fmt.Printf("\nCWT: %+v\n", verified.HealthCertificate)
+		fmt.Printf("DCC: %+v\n", dcc)
+		fmt.Printf("Name: %+v\n", dcc.Name)
+
+		if len(dcc.Vaccinations) > 0 {
+			fmt.Printf("Vaccination: %+v\n", dcc.Vaccinations[0])
+		}
+
+		if len(dcc.Recoveries) > 0 {
+			fmt.Printf("Recovery: %+v\n", dcc.Recoveries[0])
+		}
+
+		if len(dcc.Tests) > 0 {
+			fmt.Printf("Negative test: %+v\n", dcc.Tests[0])
+		}
+
+		pretty, err := json.MarshalIndent(verified.HealthCertificate, "", "  ")
+		if err != nil {
+			return errors.WrapPrefix(err, "Could not pretty print DCC contents", 0)
+		}
+
+		fmt.Println("\nJSON representation:")
+		fmt.Println(string(pretty))
+
+		for policyStr, policy := range policies {
+			fmt.Printf("\nVerifying with %s policy: \n", policyStr)
+
+			// Verify
+			verifyResult := mobilecore.VerifyWithTime([]byte(qr), policy, timestamp)
+			if verifyResult.Error != "" {
+				fmt.Printf("QR did not verify: %s\n", verifyResult.Error)
+				continue
+			}
+
+			// Status checking
+			if verifyResult.Status == mobilecore.VERIFICATION_FAILED_UNRECOGNIZED_PREFIX {
+				fmt.Printf("Unrecognized QR prefix")
+				continue
+			}
+
+			if verifyResult.Status == mobilecore.VERIFICATION_FAILED_IS_NL_DCC {
+				fmt.Printf("Would not verify because this is an NL DCC")
+				continue
+			}
+
+			verificationDetailsJson, err := json.Marshal(verifyResult.Details)
+			if err != nil {
+				return errors.WrapPrefix(err, "Could not JSON marshal verification details", 0)
+			}
+
+			fmt.Printf("Verification details for policy %s: %s\n", policyStr, verificationDetailsJson)
+		}
+
+	} else {
+		fmt.Println("QR-code not recognized as Dutch or European")
+	}
+
+	return nil
+}
+
+var policies = map[string]string{
+	"1G": mobilecore.VERIFICATION_POLICY_1G,
+	"3G": mobilecore.VERIFICATION_POLICY_3G,
 }
