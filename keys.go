@@ -26,7 +26,7 @@ type AnnotatedDomesticPk struct {
 	KID string `json:"id"`
 }
 
-func NewPublicKeysConfig(pksPath string, expectEuropeanKeys bool) (*PublicKeysConfig, error) {
+func NewPublicKeysConfig(pksPath string) (*PublicKeysConfig, error) {
 	pksJson, err := os.ReadFile(pksPath)
 	if err != nil {
 		return nil, errors.WrapPrefix(err, "Could not read public keys file", 0)
@@ -39,14 +39,6 @@ func NewPublicKeysConfig(pksPath string, expectEuropeanKeys bool) (*PublicKeysCo
 	}
 
 	publicKeysConfig.TransformLegacyDomesticPks()
-
-	if publicKeysConfig.DomesticPks == nil {
-		return nil, errors.Errorf("No domestic keys map was present")
-	}
-
-	if expectEuropeanKeys && publicKeysConfig.EuropeanPks == nil {
-		return nil, errors.Errorf("No european keys map was present")
-	}
 
 	return publicKeysConfig, nil
 }

@@ -51,7 +51,7 @@ func InitializeHolder(configDirectoryPath string) *Result {
 	}
 
 	// Read public keys
-	publicKeysConfig, err := NewPublicKeysConfig(pksPath, false)
+	publicKeysConfig, err := NewPublicKeysConfig(pksPath)
 	if err != nil {
 		return WrappedErrorResult(err, "Could not load public keys config")
 	}
