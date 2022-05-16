@@ -62,34 +62,3 @@ func InitializeHolder(configDirectoryPath string) *Result {
 
 	return &Result{nil, ""}
 }
-
-// DEPRECATED: See deprecation of LoadDomesticIssuerPks
-var HasLoadedDomesticIssuerPks bool = false
-
-// DEPRECATED: Remove this method when the mobile apps have migrated to using
-//  InitializeHolder and the holder package directly
-func LoadDomesticIssuerPks(annotatedPksJson []byte) *Result {
-	holderConfig = &holderConfiguration{}
-
-	// Unmarshal JSON list of keys
-	annotatedPks := make([]*AnnotatedDomesticPk, 0)
-	err := json.Unmarshal(annotatedPksJson, &annotatedPks)
-	if err != nil {
-		return WrappedErrorResult(err, "Could not unmarshal annotated issuer public keys")
-	}
-
-	// Transform legacy keys
-	publicKeysConfig := &PublicKeysConfig{
-		LegacyDomesticPks: annotatedPks,
-	}
-	publicKeysConfig.TransformLegacyDomesticPks()
-
-	// Initialize holders
-	domesticHolder = idemixholder.New(publicKeysConfig.FindAndCacheDomestic, CREATE_CREDENTIAL_VERSION)
-	europeanHolder = hcertholder.New()
-
-	// Set loaded status
-	HasLoadedDomesticIssuerPks = true
-
-	return &Result{nil, ""}
-}
