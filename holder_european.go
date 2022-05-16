@@ -37,8 +37,22 @@ func IsForeignDCC(proofQREncoded []byte) bool {
 		return false
 	}
 
+	// If the CWT issuer field specifies a foreign country code, it's a foreign DCC
 	if hcert.Issuer != DCC_DOMESTIC_ISSUER_COUNTRY_CODE {
 		return true
+	}
+
+	// A domestic CWT issuer field can still represent a CAS-island DCC,
+	//  when it has a configured key with a present SAN which is not the domestic country code SAN
+	pks, ok := europeanPksLookup[hcert.KIDB64]
+	if !ok {
+		return false
+	}
+
+	for _, pk := range pks {
+		if len(pk.SubjectAltName) == 3 && pk.SubjectAltName != DCC_DOMESTIC_ISSUER_KEY_SAN {
+			return true
+		}
 	}
 
 	return false

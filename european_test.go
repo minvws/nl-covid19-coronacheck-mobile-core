@@ -20,9 +20,10 @@ func TestExampleQRs(t *testing.T) {
 			t.Fatal("Expected IsDCC", testcase.expectedReadability, "of testcase", i)
 		}
 
-		// TODO: Properly fix implementation and testcases for missing prefix and for islands-issued DCCs
 		r3 := IsForeignDCC(testcase.qr)
-		if testcase.expectedStatus == VERIFICATION_SUCCESS && testcase.qr[0] == 'H' && testcase.expectedCountryCode != "CW" {
+		if (testcase.expectedStatus == VERIFICATION_SUCCESS ||
+			testcase.expectedStatus == VERIFICATION_FAILED_IS_NL_DCC) &&
+			testcase.qr[0] == 'H' {
 			if testcase.expectedCountryCode == "NL" {
 				if r3 {
 					t.Fatal("Expected isForeignDCC false (NL) for testcase", i)
@@ -125,7 +126,7 @@ var qrTestcases = []*qrTestcase{
 	{defaultQR, VERIFICATION_SUCCESS, defaultDetails, true, "LL"},
 	{defaultQR[:50], VERIFICATION_FAILED_ERROR, nil, false, ""},
 	{defaultQR[6:], VERIFICATION_FAILED_UNRECOGNIZED_PREFIX, nil, false, ""},
-	{nlQR, VERIFICATION_FAILED_IS_NL_DCC, nil, true, ""},
+	{nlQR, VERIFICATION_FAILED_IS_NL_DCC, nil, true, "NL"},
 
 	// Special case of a missing prefix because of a T-Systems app problem
 	{defaultQR[4:], VERIFICATION_SUCCESS, defaultDetails, false, "LL"},
@@ -136,7 +137,7 @@ var qrTestcases = []*qrTestcase{
 
 	// QRs signed with a kid (in testdata) that either has the CUW subject alternative name, or a missing one
 	{cuwSubjectAltNameQR, VERIFICATION_SUCCESS, defaultDetails, true, "CW"},
-	{missingSubjectAltNameQR, VERIFICATION_FAILED_IS_NL_DCC, nil, true, ""},
+	{missingSubjectAltNameQR, VERIFICATION_FAILED_IS_NL_DCC, nil, true, "NL"},
 
 	// QR which has been denylisted in the (testdata) config
 	{denylistedQR, VERIFICATION_FAILED_ERROR, nil, true, ""},

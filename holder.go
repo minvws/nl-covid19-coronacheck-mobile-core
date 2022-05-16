@@ -3,6 +3,7 @@ package mobilecore
 import (
 	"encoding/json"
 	hcertholder "github.com/minvws/nl-covid19-coronacheck-hcert/holder"
+	hcertverifier "github.com/minvws/nl-covid19-coronacheck-hcert/verifier"
 	idemixholder "github.com/minvws/nl-covid19-coronacheck-idemix/holder"
 	"github.com/privacybydesign/gabi"
 	"os"
@@ -15,6 +16,7 @@ const (
 	CREATE_CREDENTIAL_VERSION   = 3
 
 	DCC_DOMESTIC_ISSUER_COUNTRY_CODE = "NL"
+	DCC_DOMESTIC_ISSUER_KEY_SAN      = "NLD"
 )
 
 const (
@@ -27,6 +29,9 @@ var (
 
 	domesticHolder *idemixholder.Holder
 	europeanHolder *hcertholder.Holder
+
+	// euopeanPksLookup is only used to determine key SAN for CAS-islands
+	europeanPksLookup hcertverifier.PksLookup
 
 	lastCredBuilders []gabi.ProofBuilder
 )
@@ -59,6 +64,7 @@ func InitializeHolder(configDirectoryPath string) *Result {
 	// Initialize holders
 	domesticHolder = idemixholder.New(publicKeysConfig.FindAndCacheDomestic, CREATE_CREDENTIAL_VERSION)
 	europeanHolder = hcertholder.New()
+	europeanPksLookup = publicKeysConfig.EuropeanPks
 
 	return &Result{nil, ""}
 }
